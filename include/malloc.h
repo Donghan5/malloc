@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/15 21:46:29 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/20 20:53:38 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/20 20:55:57 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@
 # include <unistd.h>
 # include <sys/mman.h>
 # include <stdlib.h>
+# include <stdbool.h>
 
 # define TINY_HEAP_ALLOCATION_SIZE (4 * getpagesize())
 # define TINY_BLOCK_SIZE (TINY_HEAP_ALLOCATION_SIZE / 128)
@@ -37,6 +38,7 @@ typedef struct s_block
 	size_t			total_size;
 	size_t			free_size;
 	size_t			block_count;
+	bool			is_free;
 }					t_block;
 
 void	*malloc(size_t size);
