@@ -1,30 +1,29 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   malloc.c                                           :+:      :+:    :+:   */
+/*   tools.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/10/20 19:10:01 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/20 20:07:59 by donghank         ###   ########.fr       */
+/*   Created: 2025/10/20 20:41:57 by donghank          #+#    #+#             */
+/*   Updated: 2025/10/20 20:44:04 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-/**
- * File: malloc.c
- * Description: Implementation of custom memory allocation functions
- */
-
 #include "../include/malloc.h"
 
-/**
- * Function: malloc
- * Description: Allocates memory of given size
- * Parameters:
- *   - size: The size of memory to allocate
- */
-void	*malloc(size_t size)
+size_t	ft_strlen(char *str)
 {
-	(void)size;
-	return (NULL);
+	size_t	len;
+
+	len = 0;
+	while (str[len])
+		len++;
+	return (len);
 }
+
+void	ft_putstr(char *str)
+{
+	write(1, str, ft_strlen(str));
+}
+

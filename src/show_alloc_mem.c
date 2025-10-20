@@ -1,30 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   malloc.c                                           :+:      :+:    :+:   */
+/*   show_alloc_mem.c                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/10/20 19:10:01 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/20 20:07:59 by donghank         ###   ########.fr       */
+/*   Created: 2025/10/20 20:32:58 by donghank          #+#    #+#             */
+/*   Updated: 2025/10/20 20:33:08 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 /**
- * File: malloc.c
- * Description: Implementation of custom memory allocation functions
+ * File: show_alloc_mem.c
+ * Description: Implementation of show_alloc_mem function
  */
 
-#include "../include/malloc.h"
-
-/**
- * Function: malloc
- * Description: Allocates memory of given size
- * Parameters:
- *   - size: The size of memory to allocate
- */
-void	*malloc(size_t size)
+void	show_alloc_mem(void)
 {
-	(void)size;
-	return (NULL);
 }

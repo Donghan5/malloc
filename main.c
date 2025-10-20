@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/15 21:40:59 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/15 21:44:22 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/20 20:09:48 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
  *  - void *realloc(void *ptr, size_t size);
  */
 
-int main(void)
+int	main(void)
 {
-    return (0);
+	return (0);
 }

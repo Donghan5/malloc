@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 19:31:42 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/20 19:32:03 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/20 20:04:49 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,8 @@
  * Parameters:
  *   - ptr: Pointer to the memory to be freed
  */
-void   free(void *ptr)
+
+void	free(void *ptr)
 {
-    (void)ptr;
+	(void)ptr;
 }
