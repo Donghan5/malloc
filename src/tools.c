@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 20:41:57 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/20 20:44:04 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/21 22:11:17 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,21 +81,57 @@ static size_t	num_len(int n)
 	return (i);
 }
 
-void    print_memory_address(void *addr)
+/*
+** Description: Prints a memory address in a portable hexadecimal format
+** Parameters:
+**   - addr: The memory address to print
+** sizeof(void *) * 2: Each byte is represented by two hex digits --> 32-bit = 8 digits, 64-bit = 16 digits
+*/
+void    print_memory_address_portable(void *addr)
 {
-    uintptr_t    address;
-    char        buffer[19];
+    uintptr_t   address;
+    size_t      num_digits; 
     int         i;
+    char        buffer[sizeof(void *) * 2 + 1]; 
 
     address = (uintptr_t)addr;
-    buffer[18] = '\0';
-    i = 17;
-    while (i >= 0)
+    
+    num_digits = sizeof(void *) * 2;
+
+    buffer[num_digits] = '\0'; 
+    i = num_digits - 1;      
+    if (address == 0)
     {
-        buffer[i] = "0123456789ABCDEF"[address % 16];
-        address /= 16;
-        i--;
+        while (i >= 0)
+            buffer[i--] = '0';
     }
+    else
+    {
+        while (address > 0 && i >= 0)
+        {
+            buffer[i] = "0123456789abcdef"[address % 16]; 
+            address /= 16;
+            i--;
+        }
+        while (i >= 0)
+        {
+            buffer[i] = '0';
+            i--;
+        }
+    }
+    
     ft_putstr_fd("0x", 1);
     ft_putstr_fd(buffer, 1);
+}
+
+void	ft_print_unsigned_fd(unsigned long long n, int fd)
+{
+	char			c;
+	unsigned long long	num;
+
+	num = n;
+	if (num >= 10)
+		ft_print_unsigned_fd(num / 10, fd);
+	c = (num % 10) + '0';
+	write(fd, &c, 1);
 }

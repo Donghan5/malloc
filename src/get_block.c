@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/21 13:06:33 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/21 13:06:34 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/21 21:50:54 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,4 +36,24 @@ void    find_available_block(size_t size, t_heap **res_heap, t_block **res_block
 {
     t_heap *heap;
     t_block *block;
+    heap = g_heap_anchor;
+
+    while (heap)
+    {
+        if (heap->free_size >= size)
+        {
+            block = (t_block *)((char *)heap + sizeof(t_heap));
+            while (block)
+            {
+                if (block->data_size >= size)
+                {
+                    *res_heap = heap;
+                    *res_block = block;
+                    return ;
+                }
+                block = block->next;
+            }
+        }
+        heap = heap->next;
+    }
 }
