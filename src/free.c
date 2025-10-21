@@ -14,7 +14,7 @@
  * File: free.c
  * Description: Implementation of custom free function
  */
-#include "../include/malloc.h"
+#include "../inc/malloc.h"
 
 /**
  * Function: free

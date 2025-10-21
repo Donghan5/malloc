@@ -15,7 +15,7 @@
  * Description: Implementation of custom realloc function
  */
 
-#include "../include/malloc.h"
+#include "../inc/malloc.h"
 
 /**
  * Function: realloc

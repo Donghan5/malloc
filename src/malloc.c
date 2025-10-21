@@ -15,7 +15,7 @@
  * Description: Implementation of custom memory allocation functions
  */
 
-#include "../include/malloc.h"
+#include "../inc/malloc.h"
 
 /**
  * Function: malloc

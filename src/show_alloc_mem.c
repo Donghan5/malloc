@@ -15,6 +15,13 @@
  * Description: Implementation of show_alloc_mem function
  */
 
+#include "../inc/malloc.h"
+
+void    print_heap_name()
+{
+    
+}
+
 void	show_alloc_mem(void)
 {
 }
