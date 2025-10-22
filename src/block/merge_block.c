@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 12:50:20 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/22 13:52:27 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/22 20:40:32 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 ** Description: Block Merging Functions
 */
 
-#include "../inc/malloc.h"
+#include "../../inc/malloc.h"
 
 /*
 ** Description: Merge the given block with its previous block if it's free.

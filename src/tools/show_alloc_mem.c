@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 20:32:58 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/21 22:13:24 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/22 21:53:30 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ size_t	print_block_list(t_block *block)
 {
 	t_block *start_addr;
 	t_block *end_addr;
-	size_t total_size;
+	size_t  total_size;
 
 	total_size = 0;
 	while (block)
@@ -42,7 +42,7 @@ size_t	print_block_list(t_block *block)
 			ft_putstr_fd(" - ", 1);
 			print_memory_address_portable((void *)end_addr);
 			ft_putstr_fd(" : ", 1);
-			ft_putnbr_fd((int)block->data_size, 1);
+			ft_print_unsigned_fd((unsigned long long)block->data_size, 1);
 			ft_putstr_fd(" octets\n", 1);
 			total_size += block->data_size;	
 		}
