@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 14:04:24 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/22 20:59:32 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/23 13:33:00 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,9 @@ static t_heap    *get_available_heap(const t_heap *list_start, const t_heap_grou
     return (NULL);
 }
 
+/*
+** Description: Get a heap of the specified block size.
+*/
 t_heap    *get_heap_of_block_size(const size_t size)
 {
     t_heap          *default_heap;

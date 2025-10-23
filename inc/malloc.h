@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/15 21:46:29 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/22 21:44:49 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/23 13:50:47 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,9 +25,10 @@
 
 
 extern pthread_mutex_t	g_malloc_mutex;
-extern t_heap			*g_heap_anchor;
 extern size_t			g_tiny_heap_count;
 extern size_t			g_small_heap_count;
+
+extern t_block *g_free_lists[MAX_LISTS];
 
 /*
 ** Function prototypes (mandatory)
