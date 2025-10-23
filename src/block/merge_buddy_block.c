@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 12:50:20 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/23 14:06:19 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/23 14:32:49 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,7 @@ void    free_and_merge_buddies(t_block *block_to_free)
         
         free_and_merge_buddies(merged_block); 
     }
+	else
     {
         add_to_free_list(block_to_free, order);
     }
