@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 20:32:58 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/22 21:53:30 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 14:09:56 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,6 +81,8 @@ void    print_alloc_mem(void)
 void	show_alloc_mem(void)
 {
 	pthread_mutex_lock(&g_malloc_mutex);
+	ft_putstr_fd("===== Show Allocated Memory =====\n", 1);
 	print_alloc_mem();
+	ft_putstr_fd("=================================\n", 1);
 	pthread_mutex_unlock(&g_malloc_mutex);
 }

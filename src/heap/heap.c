@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 20:49:09 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/22 21:51:08 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 14:07:04 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ t_heap    *create_new_heap(const t_heap_group group, const size_t size)
     size_t  heap_size;
 	t_heap	*heap;
 
-	heap_size = get_heap_size_from_block_size(group, size);
+	heap_size = get_heap_group_from_block_size(size);
 	if (heap_size > get_max_mmap_size())
 		return (NULL);
 
@@ -70,7 +70,7 @@ t_heap    *create_new_heap(const t_heap_group group, const size_t size)
 	heap->total_size = heap_size;
 	heap->free_size = heap_size - sizeof(t_heap);
 
-	if( group == TINY )
+	if (group == TINY)
 		g_tiny_heap_count++;
 	else if (group == SMALL)
 		g_small_heap_count++;

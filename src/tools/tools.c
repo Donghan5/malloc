@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 20:41:57 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/21 22:11:17 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 13:26:44 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,22 +64,6 @@ void	*ft_memmove(void *dest, const void *src, size_t len)
 	return (dest);
 }
 
-static size_t	num_len(int n)
-{
-	size_t	i;
-
-	i = 0;
-	if (n < 0)
-		n *= -1;
-	if (n == 0)
-		return (1);
-	while (n)
-	{
-		n /= 10;
-		i++;
-	}
-	return (i);
-}
 
 /*
 ** Description: Prints a memory address in a portable hexadecimal format

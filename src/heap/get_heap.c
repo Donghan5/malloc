@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 14:04:24 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/23 13:33:00 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 13:21:11 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,10 +60,25 @@ t_heap    *get_heap_of_block_size(const size_t size)
     return (heap);
 }
 
-
+/*
+** Description: Get the last heap in the list.
+*/
 t_heap    *get_last_heap(t_heap *heap)
 {
     while (heap && heap->next)
         heap = heap->next;
     return (heap);
+}
+
+/*
+** Description: Get the last block in the heap.
+*/
+t_block    *get_last_block(t_heap *heap)
+{
+    t_block *block;
+
+    block = (t_block *)((void *)heap + sizeof(t_heap));
+    while (block && block->next)
+        block = block->next;
+    return (block);
 }

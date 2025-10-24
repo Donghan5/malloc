@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 20:59:19 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/22 21:51:41 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 13:25:48 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 /*
 ** Description: Determine the heap group based on the requested block size.
 */
-t_heap_group    get_heap_group_from_block_size(const size_t size)
+size_t   get_heap_group_from_block_size(const size_t size)
 {
     if (size <= (size_t)TINY_BLOCK_SIZE)
         return (TINY);

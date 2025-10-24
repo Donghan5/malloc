@@ -6,16 +6,20 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 19:10:01 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/23 14:37:41 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 14:07:26 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-/**
- * File: malloc.c
- * Description: Implementation of custom memory allocation functions
- */
-
 #include "../inc/malloc.h"
+
+/*
+** Description: Global variables for memory management
+*/
+t_heap          *g_heap_anchor = NULL;
+t_block         *g_free_lists[MAX_LISTS] = {0};
+size_t          g_tiny_heap_count = 0;
+size_t          g_small_heap_count = 0;
+pthread_mutex_t g_malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
 ** Description: Starting malloc function
@@ -24,7 +28,7 @@
 ** Returns: Pointer to allocated memory or NULL on failure
 ** Note: 16-byte alignment --> (size + 15) & ~15
 */
-void	*start_malloc(size_t size)
+static void	*start_malloc(size_t size)
 {
 	t_heap	*heap;
 	t_block	*block;
@@ -32,12 +36,15 @@ void	*start_malloc(size_t size)
 
 	if (!size)
 		return (NULL);
+	block = NULL;
 	size = (size + 15) & ~15;
-	if ((block = find_buddy_block(size)) != NULL)
+	find_available_buddy_block(size, &block);
+
+	if (block)
 		return (BLOCK_SHIFT(block));
 	if (!(heap = get_heap_of_block_size(size)))
 		return (NULL);
-	res = allocate_block_from_heap(heap, size);
+	res = append_empty_block(heap, size);
 	return (res);
 }
 

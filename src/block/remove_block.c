@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 13:50:42 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/22 20:40:35 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 12:18:20 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,4 +27,26 @@ void    remove_block_if_last(t_heap *heap, t_block *block)
             block->prev->next = NULL;
         heap->block_count--;
     }
+}
+
+/*
+** Description: Remove a block from the free list.
+** Parameters:
+**   block: The block to remove.
+** Returns: None.
+*/
+t_block   *remove_block_from_free_list(t_block *block)
+{
+    int order;
+
+    order = get_order_from_size(block->data_size);
+    if (block->prev)
+        block->prev->next = block->next;
+    else
+        g_free_lists[order] = block->next;
+    if (block->next)
+        block->next->prev = block->prev;
+    block->prev = NULL;
+    block->next = NULL;
+    return (block);
 }

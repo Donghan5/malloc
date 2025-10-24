@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/21 13:06:33 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/23 14:04:20 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 13:20:55 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@
 ** Returns: The order corresponding to the size.
 ** Note: block_size is power of 2
 */
-static int    get_order_from_size(size_t size)
+int    get_order_from_size(size_t size)
 {
     int order;
     size_t block_size;
@@ -48,20 +48,20 @@ static t_block    *split_block(t_block *block_to_split, int target_order)
 {
     int current_order;
 
-    current_order = get_order_from_size(block_to_split->size);
+    current_order = get_order_from_size(block_to_split->data_size);
     while (current_order > target_order)
     {
-        remove_from_free_list(block_to_split);
+        remove_block_from_free_list(block_to_split);
         current_order--;
         size_t new_size = 1 << current_order;
 
         block_to_split->data_size = new_size;
         
         t_block *buddy_block = (t_block *)((void *)BLOCK_SHIFT(block_to_split) + new_size);
-        init_block(buddy_block, new_size, true);
+        init_block(buddy_block, new_size);
         buddy_block->is_free = true;
 
-        add_to_free_list(buddy_block);
+        add_to_free_list(buddy_block, current_order);
     }
     return (block_to_split);
 }
@@ -79,7 +79,7 @@ void    find_available_buddy_block(size_t size, t_block **res_block)
 
     if (g_free_lists[list_index])
     {
-        *res_block = remove_from_free_list(g_free_lists[list_index]);
+        *res_block = remove_block_from_free_list(g_free_lists[list_index]);
         (*res_block)->is_free = false;
         return;
     }
@@ -90,8 +90,8 @@ void    find_available_buddy_block(size_t size, t_block **res_block)
     {
         if (g_free_lists[larger_list_index])
         {
-            t_block *fpimd = remove_from_free_list(g_free_lists[larger_list_index]);
-            *res_block = split_block(fpimd, order_needed);
+            t_block *found = remove_block_from_free_list(g_free_lists[larger_list_index]);
+            *res_block = split_block(found, order_needed);
             (*res_block)->is_free = false;
             return;
         }

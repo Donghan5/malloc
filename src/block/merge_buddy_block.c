@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 12:50:20 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/23 14:32:49 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 12:25:38 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,22 @@ static t_block *get_buddy(t_block *block)
     uintptr_t buddy_addr = (uintptr_t)block ^ block->data_size;
     
     return ((t_block *)buddy_addr); 
+}
+
+/*
+** Description: Add block to free list.
+*/
+void    add_to_free_list(t_block *block, int order)
+{
+    t_block *old_head = g_free_lists[order];
+    
+    block->is_free = true;
+    block->prev = NULL;
+    
+    block->next = old_head;
+    if (old_head != NULL)
+        old_head->prev = block;
+    g_free_lists[order] = block;
 }
 
 /*
@@ -41,8 +57,8 @@ void    free_and_merge_buddies(t_block *block_to_free)
 
     if (buddy->is_free && buddy->data_size == block_to_free->data_size)
     {
-        remove_from_free_list(buddy);
-        
+        remove_block_from_free_list(buddy);
+
         t_block *merged_block = (block_to_free < buddy) ? block_to_free : buddy;
         merged_block->data_size *= 2;
         
