@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/15 21:40:59 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/24 13:57:00 by donghank         ###   ########.fr       */
+/*   Updated: 2025/10/24 15:46:09 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@ int	main(void)
 	void *ptr1 = malloc(100);
 	void *ptr2 = malloc(200);
 	show_alloc_mem();
-	//free(ptr1);
-	//free(ptr2);
+	free(ptr1);
+	free(ptr2);
 	return (0);
 }
