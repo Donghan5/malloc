@@ -17,9 +17,10 @@ int		get_order_from_size(size_t size);
 void	find_available_buddy_block(size_t size, t_block **res_block);
 void	init_block(t_block *block, size_t size);
 void	add_to_free_list(t_block *block, int order);
-void	free_and_merge_buddies(t_block *block_to_free);
+t_block	*free_and_merge_buddies(t_block *block_to_free);
 void	remove_block_if_last(t_heap *heap, t_block *block);
 t_block	*remove_block_from_free_list(t_block *block);
+size_t   get_heap_size_from_block_size(const t_heap_group group, const size_t request_size);
 
 
 /*
@@ -46,5 +47,6 @@ void	*ft_memset(void *dest, int value, size_t count);
 void	*ft_memmove(void *dest, const void *src, size_t len);
 void	print_memory_address_portable(void *addr);
 void	ft_print_unsigned_fd(unsigned long long n, int fd);
+void	search_pointer(t_heap **heap_ptr, t_block **block_ptr, t_heap *heap, void *ptr);
 
 #endif

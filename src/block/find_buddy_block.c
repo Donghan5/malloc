@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/21 13:06:33 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/24 13:20:55 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/05 17:23:56 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,6 @@ static t_block    *split_block(t_block *block_to_split, int target_order)
     current_order = get_order_from_size(block_to_split->data_size);
     while (current_order > target_order)
     {
-        remove_block_from_free_list(block_to_split);
         current_order--;
         size_t new_size = 1 << current_order;
 
@@ -61,7 +60,7 @@ static t_block    *split_block(t_block *block_to_split, int target_order)
         init_block(buddy_block, new_size);
         buddy_block->is_free = true;
 
-        add_to_free_list(buddy_block, current_order);
+        add_to_free_list(buddy_block, current_order - MIN_ORDER);
     }
     return (block_to_split);
 }

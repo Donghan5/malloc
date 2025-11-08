@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 13:50:42 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/24 12:18:20 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/05 17:21:57 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,12 +38,14 @@ void    remove_block_if_last(t_heap *heap, t_block *block)
 t_block   *remove_block_from_free_list(t_block *block)
 {
     int order;
-
+    int list_index;
+    
     order = get_order_from_size(block->data_size);
+    list_index = order - MIN_ORDER;
     if (block->prev)
         block->prev->next = block->next;
     else
-        g_free_lists[order] = block->next;
+        g_free_lists[list_index] = block->next;
     if (block->next)
         block->next->prev = block->prev;
     block->prev = NULL;

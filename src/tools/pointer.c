@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/24 15:10:47 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/24 15:46:32 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/04 20:13:06 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,6 @@ void	search_pointer(t_heap **heap_ptr, t_block **block_ptr, t_heap *heap, void *
 		}
 		heap = heap->next;
 	}
-	heap_ptr = NULL;
-	block_ptr = NULL;
+	*heap_ptr = NULL;
+	*block_ptr = NULL;
 }

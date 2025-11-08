@@ -55,7 +55,7 @@ clean:
 	@echo "Clean done"
 
 fclean: clean
-	@rm -f $(NAME) $(LIB_NAME)
+	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC)
 	@echo "Fclean done"
 
 re: fclean $(NAME)
@@ -67,8 +67,7 @@ TEST_EXEC = test_malloc
 .PHONY: run $(TEST_EXEC)
 
 run: all $(TEST_EXEC)
-	@echo "--- Running test with LD_PRELOAD ---"
-	LD_PRELOAD=./$(NAME) ./$(TEST_EXEC)
+	./$(TEST_EXEC)
 	@echo "--- Test finished ---"
 
 $(TEST_EXEC): main.c $(NAME)

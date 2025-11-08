@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 19:10:01 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/24 14:07:26 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/05 17:50:22 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,22 +30,40 @@ pthread_mutex_t g_malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
 */
 static void	*start_malloc(size_t size)
 {
-	t_heap	*heap;
-	t_block	*block;
-	void	*res;
+	t_heap			*heap;
+	t_block			*block;
+	t_heap_group	group;
 
 	if (!size)
 		return (NULL);
 	block = NULL;
-	size = (size + 15) & ~15;
-	find_available_buddy_block(size, &block);
+	size = (size + 15) & ~15; 
+	
+	group = get_heap_group_from_block_size(size);
 
-	if (block)
-		return (BLOCK_SHIFT(block));
-	if (!(heap = get_heap_of_block_size(size)))
-		return (NULL);
-	res = append_empty_block(heap, size);
-	return (res);
+	if (group == LARGE)
+	{
+		if (!(heap = get_heap_of_block_size(size)))
+			return (NULL);
+		
+		return (append_empty_block(heap, size));
+	}
+	
+	else 
+	{
+		find_available_buddy_block(size, &block);
+		if (block)
+			return (BLOCK_SHIFT(block));
+
+		if (!(heap = get_heap_of_block_size(size)))
+			return (NULL);
+
+		find_available_buddy_block(size, &block);
+		if (block)
+			return (BLOCK_SHIFT(block));
+	}
+
+	return (NULL);
 }
 
 /**

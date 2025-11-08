@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 20:32:58 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/24 14:09:56 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/05 17:45:00 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,25 +53,25 @@ size_t	print_block_list(t_block *block)
 
 void    print_alloc_mem(void)
 {
-	t_heap	*first_heap;
-	t_heap	*last_heap;
+	t_heap	*current_heap;
 	size_t	total_allocated;
 
 	total_allocated = 0;
-	first_heap = g_heap_anchor;
-	last_heap = get_last_heap(first_heap);
-
-	while (last_heap)
+	current_heap = g_heap_anchor;
+	
+	while (current_heap)
 	{
-		if (last_heap->group == TINY)
-			print_heap_header("TINY", last_heap);
-		else if (last_heap->group == SMALL)
-			print_heap_header("SMALL", last_heap);
+		if (current_heap->group == TINY)
+			print_heap_header("TINY", current_heap);
+		else if (current_heap->group == SMALL)
+			print_heap_header("SMALL", current_heap);
 		else
-			print_heap_header("LARGE", last_heap);
-		if (last_heap->block_count)
-			total_allocated += print_block_list((t_block *)HEAP_SHIFT(last_heap));
-		last_heap = last_heap->prev;
+			print_heap_header("LARGE", current_heap);
+		
+		if (current_heap->block_count) 
+			total_allocated += print_block_list((t_block *)HEAP_SHIFT(current_heap));
+		
+        current_heap = current_heap->next;
 	}
 	ft_putstr_fd("Total : ", 1);
 	ft_print_unsigned_fd(total_allocated, 1);
