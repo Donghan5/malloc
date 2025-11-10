@@ -35,9 +35,9 @@ FLAGS_LIB = -shared
 # COMMANDS  		    													   #
 # **************************************************************************** #
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re setup
 
-all: $(NAME)
+all: setup $(NAME)
 
 $(NAME): $(OBJECTS)
 	$(CC) $(FLAGS_LIB) -o $@ $(OBJECTS)
@@ -58,6 +58,9 @@ fclean: clean
 	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC)
 	@echo "Fclean done"
 
+setup:
+	./setup.sh
+
 re: fclean $(NAME)
 
 TEST_EXEC = test_malloc
@@ -72,3 +75,7 @@ run: all $(TEST_EXEC)
 
 $(TEST_EXEC): main.c $(NAME)
 	$(CC) main.c -o $(TEST_EXEC) -I $(PATH_INC) ./$(NAME)
+
+valgrind: all $(TEST_EXEC)
+	valgrind --leak-check=full --show-leak-kinds=all ./$(TEST_EXEC)
+	@echo "--- Valgrind finished ---"

@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 13:50:42 by donghank          #+#    #+#             */
-/*   Updated: 2025/11/05 17:21:57 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/10 15:15:39 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ void    remove_block_if_last(t_heap *heap, t_block *block)
 {
     if (heap && block)
     {
-        if (block->prev)
+        if (block->prev /* && block->next == NULL */)
             block->prev->next = NULL;
         heap->block_count--;
     }
@@ -35,20 +35,20 @@ void    remove_block_if_last(t_heap *heap, t_block *block)
 **   block: The block to remove.
 ** Returns: None.
 */
-t_block   *remove_block_from_free_list(t_block *block)
+t_block   *remove_block_from_free_list(t_block *block, t_block **free_lists)
 {
     int order;
     int list_index;
     
     order = get_order_from_size(block->data_size);
     list_index = order - MIN_ORDER;
-    if (block->prev)
-        block->prev->next = block->next;
+    if (block->free_prev)
+        block->free_prev->free_next = block->free_next;
     else
-        g_free_lists[list_index] = block->next;
-    if (block->next)
-        block->next->prev = block->prev;
-    block->prev = NULL;
-    block->next = NULL;
+        free_lists[list_index] = block->free_next;
+    if (block->free_next)
+        block->free_next->free_prev = block->free_prev;
+    block->free_prev = NULL;
+    block->free_next = NULL;
     return (block);
 }

@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 21:00:02 by donghank          #+#    #+#             */
-/*   Updated: 2025/10/22 21:01:10 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/10 12:44:30 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,8 +48,10 @@ typedef struct s_heap
 */
 typedef struct s_block
 {
-	struct s_block	*prev;
-	struct s_block	*next;
+	struct s_block *prev;
+	struct s_block *next;
+	struct s_block *free_prev;
+	struct s_block *free_next;
 	size_t			data_size;
 	bool			is_free;
 }					t_block;

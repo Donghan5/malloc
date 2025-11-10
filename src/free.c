@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 19:31:42 by donghank          #+#    #+#             */
-/*   Updated: 2025/11/05 17:55:30 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/10 18:15:23 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ void	start_free(void *ptr)
 {
 	t_heap	*heap;
 	t_block	*block;
-	t_block	*ret;
+	t_block	*merged_block;
 
 	heap = g_heap_anchor;
 	if (!ptr || !heap)
@@ -29,16 +29,25 @@ void	start_free(void *ptr)
 	if (block && heap)
 	{
 		block->is_free = true;
-		ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
-
+		
 		if (heap->group == TINY || heap->group == SMALL)
 		{
-			ret = free_and_merge_buddies(block);
-			block = ret ? ret : block;
+			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size - sizeof(t_block));
+			merged_block = free_and_merge_buddies(block, heap->group);
+			
+			if (merged_block->prev == NULL && merged_block->next == NULL)
+			{
+				heap->block_count = 0;
+				remove_heap(heap);
+			}
 		}
 
-		remove_block_if_last(heap, block);
-		remove_heap(heap);
+		else if (heap->group == LARGE)
+		{
+			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
+			heap->block_count--;
+			remove_heap(heap);
+		}
 	}
 }
 

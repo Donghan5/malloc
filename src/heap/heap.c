@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/22 20:49:09 by donghank          #+#    #+#             */
-/*   Updated: 2025/11/05 17:51:12 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/10 11:24:13 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,8 +87,8 @@ t_heap    *create_new_heap(const t_heap_group group, const size_t size)
             t_block *initial_block = (t_block *)HEAP_SHIFT(heap);
             init_block(initial_block, initial_block_size);
             initial_block->is_free = true;
-            add_to_free_list(initial_block, order - MIN_ORDER); 
-            
+			t_block **free_lists = (group == TINY) ? g_tiny_free_lists : g_small_free_list;
+            add_to_free_list(initial_block, order - MIN_ORDER, free_lists);    
         }
         heap->block_count = 1;
     }

@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/20 19:10:01 by donghank          #+#    #+#             */
-/*   Updated: 2025/11/05 17:50:22 by donghank         ###   ########.fr       */
+/*   Updated: 2025/11/10 11:15:30 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,8 @@
 ** Description: Global variables for memory management
 */
 t_heap          *g_heap_anchor = NULL;
-t_block         *g_free_lists[MAX_LISTS] = {0};
+t_block         *g_tiny_free_lists[MAX_LISTS] = {0};
+t_block         *g_small_free_list[MAX_LISTS] = {0};
 size_t          g_tiny_heap_count = 0;
 size_t          g_small_heap_count = 0;
 pthread_mutex_t g_malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -28,7 +29,7 @@ pthread_mutex_t g_malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
 ** Returns: Pointer to allocated memory or NULL on failure
 ** Note: 16-byte alignment --> (size + 15) & ~15
 */
-static void	*start_malloc(size_t size)
+void	*start_malloc(size_t size)
 {
 	t_heap			*heap;
 	t_block			*block;
@@ -51,14 +52,15 @@ static void	*start_malloc(size_t size)
 	
 	else 
 	{
-		find_available_buddy_block(size, &block);
+		t_block **free_lists = (group == TINY) ? g_tiny_free_lists : g_small_free_list;
+		find_available_buddy_block(size, &block, free_lists);
 		if (block)
 			return (BLOCK_SHIFT(block));
-
+		
 		if (!(heap = get_heap_of_block_size(size)))
 			return (NULL);
 
-		find_available_buddy_block(size, &block);
+		find_available_buddy_block(size, &block, free_lists);
 		if (block)
 			return (BLOCK_SHIFT(block));
 	}
