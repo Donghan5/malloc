@@ -12,8 +12,6 @@
 
 #include "../../inc/malloc.h"
 
-static size_t get_buddy_order_size(size_t n);
-
 /*
 ** Description: Get the maximum mmap size allowed by the system.
 */
@@ -59,6 +57,8 @@ t_heap    *create_new_heap(const t_heap_group group, const size_t size)
 {
     size_t  heap_size;
     t_heap  *heap;
+	t_block	*block;
+	size_t	data_size;
 
     heap_size = get_heap_size_from_block_size(group, size);
     if (heap_size > get_max_mmap_size())
@@ -71,55 +71,31 @@ t_heap    *create_new_heap(const t_heap_group group, const size_t size)
     heap->group = group;
     heap->total_size = heap_size;
     heap->free_size = heap_size - sizeof(t_heap);
-
-    if (group == TINY)
-        g_tiny_heap_count++;
-    else if (group == SMALL)
-        g_small_heap_count++;
     
     if (group == TINY || group == SMALL)
     {
-        size_t initial_block_size = get_buddy_order_size(heap->free_size);
-        int order = get_order_from_size(initial_block_size); 
-
-        if (initial_block_size > 0)
-        {
-            t_block *initial_block = (t_block *)HEAP_SHIFT(heap);
-            init_block(initial_block, initial_block_size);
-            initial_block->is_free = true;
-			t_block **free_lists = (group == TINY) ? g_tiny_free_lists : g_small_free_list;
-            add_to_free_list(initial_block, order - MIN_ORDER, free_lists);    
-        }
         heap->block_count = 1;
+		block = (t_block *)HEAP_SHIFT(heap);
+		data_size = heap->free_size - sizeof(t_block);
+		init_block(block, data_size);
+		block->is_free = true;
+		if (group == TINY)
+			g_data.tiny_heap_count++;
+		if (group == SMALL)
+			g_data.small_heap_count++;
     }
     
     return (heap);
 }
 
-static size_t get_buddy_order_size(size_t n)
-{
-    if (n < (1 << MIN_ORDER)) 
-        return (0);
-
-    size_t power = 1;
-    while (power <= n >> 1) { 
-        power <<= 1;
-    }
-    
-    if (power < (1 << MIN_ORDER))
-        return (1 << MIN_ORDER);
-        
-    return (power);
-}
 
 static bool	is_last_of_preallocated(t_heap *heap)
 {
 	if (heap->group == TINY)
-		return (g_tiny_heap_count == 1);
+		return (g_data.tiny_heap_count == 1);
 	if (heap->group == SMALL)
-		return (g_small_heap_count == 1);
-
-    return (false);
+		return (g_data.small_heap_count == 1);
+	return (false);
 }
 
 void   remove_heap(t_heap *heap)
@@ -130,23 +106,23 @@ void   remove_heap(t_heap *heap)
 	if (heap->prev)
 		heap->prev->next = heap->next;
 	else
-		g_heap_anchor = heap->next;
+		g_data.heap_anchor = heap->next;
 	if (heap->next)
 		heap->next->prev = heap->prev;
-
-	if (is_last_of_preallocated(heap))
+	
+		if (is_last_of_preallocated(heap))
 	{
 		if (heap->group == TINY)
-			g_tiny_heap_count = 0;
+			g_data.tiny_heap_count = 0;
 		else if (heap->group == SMALL)
-			g_small_heap_count = 0;
+			g_data.small_heap_count = 0;
 	}
 	else
 	{
 		if (heap->group == TINY)
-			g_tiny_heap_count--;
+			g_data.tiny_heap_count--;
 		else if (heap->group == SMALL)
-			g_small_heap_count--;
+			g_data.small_heap_count--;
 	}
 	munmap((void *)heap, heap->total_size);
 }

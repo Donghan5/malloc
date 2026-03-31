@@ -20,9 +20,8 @@ void	start_free(void *ptr)
 {
 	t_heap	*heap;
 	t_block	*block;
-	t_block	*merged_block;
 
-	heap = g_heap_anchor;
+	heap = g_data.heap_anchor;
 	if (!ptr || !heap)
 		return ;
 	search_pointer(&heap, &block, heap, ptr);
@@ -32,14 +31,8 @@ void	start_free(void *ptr)
 		
 		if (heap->group == TINY || heap->group == SMALL)
 		{
-			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size - sizeof(t_block));
-			merged_block = free_and_merge_buddies(block, heap->group);
-			
-			if (merged_block->prev == NULL && merged_block->next == NULL)
-			{
-				heap->block_count = 0;
-				remove_heap(heap);
-			}
+			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
+			// --- add for coalesce and heap free logic --- //
 		}
 
 		else if (heap->group == LARGE)

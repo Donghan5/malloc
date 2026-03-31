@@ -19,8 +19,6 @@ void	init_block(t_block *block, const size_t size)
 		block->data_size = size;
 		block->next = NULL;
 		block->prev = NULL;
-		block->free_next = NULL;
-		block->free_prev = NULL;
 		block->is_free = false;
 	}
 }

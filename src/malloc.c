@@ -15,11 +15,7 @@
 /*
 ** Description: Global variables for memory management
 */
-t_heap          *g_heap_anchor = NULL;
-t_block         *g_tiny_free_lists[MAX_LISTS] = {0};
-t_block         *g_small_free_list[MAX_LISTS] = {0};
-size_t          g_tiny_heap_count = 0;
-size_t          g_small_heap_count = 0;
+t_malloc_data	g_data;
 pthread_mutex_t g_malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
@@ -52,15 +48,12 @@ void	*start_malloc(size_t size)
 	
 	else 
 	{
-		t_block **free_lists = (group == TINY) ? g_tiny_free_lists : g_small_free_list;
-		find_available_buddy_block(size, &block, free_lists);
 		if (block)
 			return (BLOCK_SHIFT(block));
 		
 		if (!(heap = get_heap_of_block_size(size)))
 			return (NULL);
 
-		find_available_buddy_block(size, &block, free_lists);
 		if (block)
 			return (BLOCK_SHIFT(block));
 	}

@@ -19,10 +19,10 @@
 
 void *start_realloc(void *ptr, size_t size)
 {
-	t_heap	*heap;
-	t_block	*block;
-	void	*new_ptr;
-	size_t	original_size;
+	t_heap			*heap;
+	t_block			*block;
+	void			*new_ptr;
+	size_t			original_size;
 
 	if (!ptr)
 		return (start_malloc(size));
@@ -32,7 +32,7 @@ void *start_realloc(void *ptr, size_t size)
 		return (NULL);
 	}
 	
-	heap = g_heap_anchor;
+	heap = g_data.heap_anchor;
 	size = (size + 15) & ~15;
 
 	search_pointer(&heap, &block, heap, ptr);

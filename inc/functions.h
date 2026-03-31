@@ -13,13 +13,8 @@ void *realloc(void *ptr, size_t size);
 /*
 ** src/block
 */
-int		get_order_from_size(size_t size);
-void	find_available_buddy_block(size_t size, t_block **res_block, t_block **free_lists);
 void	init_block(t_block *block, size_t size);
-void	add_to_free_list(t_block *block, int order, t_block **free_lists);
-t_block	*free_and_merge_buddies(t_block *block_to_free, t_heap_group group);
 void	remove_block_if_last(t_heap *heap, t_block *block);
-t_block	*remove_block_from_free_list(t_block *block, t_block **free_lists);
 size_t   get_heap_size_from_block_size(const t_heap_group group, const size_t request_size);
 
 

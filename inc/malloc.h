@@ -24,14 +24,10 @@
 # include "define.h"
 # include "functions.h"
 
-
+/// --- @brief global variable for mutex --- ///
 extern pthread_mutex_t	g_malloc_mutex;
-extern size_t			g_tiny_heap_count;
-extern size_t			g_small_heap_count;
 
-extern t_block *g_tiny_free_lists[MAX_LISTS];
-extern t_block *g_small_free_list[MAX_LISTS];
-extern t_heap	*g_heap_anchor;
-
+/// --- @brief wrapper struct for malloc --- ///
+extern t_malloc_data    g_data;
 
 #endif

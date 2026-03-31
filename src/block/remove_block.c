@@ -28,27 +28,3 @@ void    remove_block_if_last(t_heap *heap, t_block *block)
         heap->block_count--;
     }
 }
-
-/*
-** Description: Remove a block from the free list.
-** Parameters:
-**   block: The block to remove.
-** Returns: None.
-*/
-t_block   *remove_block_from_free_list(t_block *block, t_block **free_lists)
-{
-    int order;
-    int list_index;
-    
-    order = get_order_from_size(block->data_size);
-    list_index = order - MIN_ORDER;
-    if (block->free_prev)
-        block->free_prev->free_next = block->free_next;
-    else
-        free_lists[list_index] = block->free_next;
-    if (block->free_next)
-        block->free_next->free_prev = block->free_prev;
-    block->free_prev = NULL;
-    block->free_next = NULL;
-    return (block);
-}

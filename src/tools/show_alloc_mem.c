@@ -43,7 +43,7 @@ size_t	print_block_list(t_block *block)
 			print_memory_address_portable((void *)end_addr);
 			ft_putstr_fd(" : ", 1);
 			ft_print_unsigned_fd((unsigned long long)block->data_size, 1);
-			ft_putstr_fd(" octets\n", 1);
+			ft_putstr_fd(" bytes\n", 1);
 			total_size += block->data_size;	
 		}
 		block = block->next;
@@ -57,7 +57,7 @@ void    print_alloc_mem(void)
 	size_t	total_allocated;
 
 	total_allocated = 0;
-	current_heap = g_heap_anchor;
+	current_heap = g_data.heap_anchor;
 	
 	while (current_heap)
 	{
@@ -75,7 +75,7 @@ void    print_alloc_mem(void)
 	}
 	ft_putstr_fd("Total : ", 1);
 	ft_print_unsigned_fd(total_allocated, 1);
-	ft_putstr_fd(" octets\n", 1);
+	ft_putstr_fd(" bytes\n", 1);
 }
 
 void	show_alloc_mem(void)

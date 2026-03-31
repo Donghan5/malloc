@@ -25,14 +25,4 @@
 # define SMALL_HEAP_ALLOCATION_SIZE (32 * getpagesize())
 # define SMALL_BLOCK_SIZE (SMALL_HEAP_ALLOCATION_SIZE / 128)
 
-/*
-** Description: Macros for memory allocation ordering. Minimum block size
-** MIN_ORDER: Minimum order (2^4 = 16 bytes)
-** MAX_ORDER: Maximum order (2^20 = 1 MB)
-** MAX_LISTS: Total number of order lists
-*/
-#define MIN_ORDER 4
-#define MAX_ORDER 20 
-#define MAX_LISTS (MAX_ORDER - MIN_ORDER + 1)
-
 #endif

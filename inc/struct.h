@@ -50,10 +50,17 @@ typedef struct s_block
 {
 	struct s_block *prev;
 	struct s_block *next;
-	struct s_block *free_prev;
-	struct s_block *free_next;
 	size_t			data_size;
 	bool			is_free;
 }					t_block;
+
+
+// --- wrapper structure --- //
+typedef struct s_malloc_data
+{
+	t_heap	*heap_anchor;
+	size_t	tiny_heap_count;
+	size_t	small_heap_count;
+}	t_malloc_data;
 
 #endif
