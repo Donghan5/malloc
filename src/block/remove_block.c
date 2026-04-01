@@ -28,3 +28,56 @@ void    remove_block_if_last(t_heap *heap, t_block *block)
         heap->block_count--;
     }
 }
+
+// --- find free block to deallocate unused block --- //
+t_heap  *find_free_block(t_block **block, size_t size, t_heap *heap_anchor)
+{
+    t_heap  *heap_curr;
+    t_block *block_curr;
+
+    heap_curr = heap_anchor;
+    while (heap_curr)
+    {
+        block_curr = HEAP_SHIFT(heap_curr);
+        // --- block list --- //
+        while (block_curr)
+        {
+            if (block_curr->is_free && block_curr->data_size >= size)
+            {
+                *block = block_curr;
+                return (heap_curr);
+            }
+            block_curr = block_curr->next;
+        }
+        heap_curr = heap_curr->next;
+    }
+    return (NULL);
+}
+
+// --- split function --- //
+t_block *split_block(t_block *block, size_t size)
+{
+    if (block->data_size - size < sizeof(t_block) + 16)
+    {
+        ft_putstr_fd("[MALLOC] Cannot split block\n", 1);
+        return (NULL);
+    }
+
+    // --- calculate new block position --- //
+    t_block *new_block;
+    new_block = BLOCK_SHIFT(block) + size;
+
+    // --- initialize new block --- //
+    init_block(new_block, block->data_size - size);
+    new_block->is_free = true;
+    new_block->prev = block;
+    new_block->next = block->next;
+    if (block->next)
+        block->next->prev = new_block;
+    block->next = new_block;
+    
+    // --- update size of original block (data_size to size) --- //
+    block->data_size = size;
+    
+    return (new_block);
+}

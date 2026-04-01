@@ -2,6 +2,7 @@
 #define FUNCTIONS_H
 
 #include <stddef.h>
+#include "struct.h"
 
 /*
 ** Function mandatory prototypes
