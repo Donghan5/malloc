@@ -68,7 +68,7 @@ t_block *split_block(t_block *block, size_t size)
     new_block = BLOCK_SHIFT(block) + size;
 
     // --- initialize new block --- //
-    init_block(new_block, block->data_size - size);
+    init_block(new_block, block->data_size - size - sizeof(t_block));
     new_block->is_free = true;
     new_block->prev = block;
     new_block->next = block->next;
@@ -81,3 +81,33 @@ t_block *split_block(t_block *block, size_t size)
     
     return (new_block);
 }
+
+// --- coalesce functions --- //
+void    coalesce_block(t_block *block)
+{
+    t_block *next_block;
+    t_block *prev_block;
+
+    next_block = block->next;
+    prev_block = block->prev;
+    
+    // --- coalesce with next block ---
+    if (next_block && next_block->is_free == true \
+        && block->is_free == true)
+    {
+        block->data_size += next_block->data_size + sizeof(t_block);
+        block->next = next_block->next;
+        if (block->next)
+            block->next->prev = block;
+    }
+    // --- coalesce with prev block ---
+    if (prev_block && prev_block->is_free == true \
+        && block->is_free == true)
+    {
+        prev_block->data_size += block->data_size + sizeof(t_block);
+        prev_block->next = block->next;
+        if (prev_block->next)
+            prev_block->next->prev = prev_block;
+    }
+}
+ 

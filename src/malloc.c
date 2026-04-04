@@ -46,16 +46,25 @@ void	*start_malloc(size_t size)
 		return (append_empty_block(heap, size));
 	}
 	
-	else 
+	else
 	{
+		find_free_block(&block, size, g_data.heap_anchor);
 		if (block)
+		{
+			split_block(block, size);
+			block->is_free = false;
 			return (BLOCK_SHIFT(block));
+		}
 		
-		if (!(heap = get_heap_of_block_size(size)))
-			return (NULL);
-
-		if (block)
+		if (!block)
+		{
+			if (!(heap = get_heap_of_block_size(size)))
+				return (NULL);
+			block = (t_block *)HEAP_SHIFT(heap);
+			split_block(block, size);
+			block->is_free = false;
 			return (BLOCK_SHIFT(block));
+		}
 	}
 
 	return (NULL);
