@@ -11,8 +11,7 @@ PATH_LIB = lib
 PATH_OBJ = obj
 PATH_SRC = src
 
-SOURCES += src/block/find_buddy_block.c src/block/init_block.c \
-	src/block/merge_buddy_block.c src/block/remove_block.c
+SOURCES += src/block/block.c src/block/init_block.c
 SOURCES += src/heap/get_heap.c src/heap/heap.c src/heap/helper_heap.c
 SOURCES += src/tools/show_alloc_mem.c src/tools/tools.c src/tools/pointer.c
 SOURCES += src/free.c src/malloc.c src/realloc.c

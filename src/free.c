@@ -20,6 +20,7 @@ void	start_free(void *ptr)
 {
 	t_heap	*heap;
 	t_block	*block;
+	t_block	*first;
 
 	heap = g_data.heap_anchor;
 	if (!ptr || !heap)
@@ -33,6 +34,10 @@ void	start_free(void *ptr)
 		{
 			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
 			// --- add for coalesce and heap free logic --- //
+			coalesce_block(block);
+			first = (t_block *)HEAP_SHIFT(heap);
+			if (first->prev == NULL && first->next == NULL && first->is_free == true)
+				remove_heap(heap);
 		}
 
 		else if (heap->group == LARGE)
