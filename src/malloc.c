@@ -48,12 +48,13 @@ void	*start_malloc(size_t size)
 	
 	else
 	{
-		find_free_block(&block, size, g_data.heap_anchor);
+		heap = find_free_block(&block, size, g_data.heap_anchor);
 		if (block)
 		{
 			split_block(block, size);
 			block->is_free = false;
-			return (BLOCK_SHIFT(block));
+			heap->free_size -= (size + sizeof(t_block));
+			return(BLOCK_SHIFT(block));
 		}
 		
 		if (!block)
@@ -63,6 +64,7 @@ void	*start_malloc(size_t size)
 			block = (t_block *)HEAP_SHIFT(heap);
 			split_block(block, size);
 			block->is_free = false;
+			heap->free_size -= (size + sizeof(t_block));
 			return (BLOCK_SHIFT(block));
 		}
 	}

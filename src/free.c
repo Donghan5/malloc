@@ -33,6 +33,7 @@ void	start_free(void *ptr)
 		if (heap->group == TINY || heap->group == SMALL)
 		{
 			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
+			heap->free_size += (block->data_size + sizeof(t_block));
 			// --- add for coalesce and heap free logic --- //
 			coalesce_block(block);
 			first = (t_block *)HEAP_SHIFT(heap);
@@ -43,6 +44,7 @@ void	start_free(void *ptr)
 		else if (heap->group == LARGE)
 		{
 			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
+			heap->free_size += (block->data_size + sizeof(t_block));
 			heap->block_count--;
 			remove_heap(heap);
 		}

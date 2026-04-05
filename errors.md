@@ -2,7 +2,7 @@
 
 ## Build Error
 
-### 1. Misleading indentation in `remove_heap`
+### 1. Misleading indentation in `remove_heap` --- fix it (check it later)
 - **File:** `src/heap/heap.c:110-113`
 - **Severity:** Build-breaking (`-Werror=misleading-indentation`)
 - **Description:** The second `if (is_last_of_preallocated(...))` is indented as if guarded by the `if (heap->next)` above it, but it is not. GCC treats this as an error with `-Werror`.
@@ -12,7 +12,7 @@
 
 ## Critical Bugs
 
-### 2. `free_size` never updated for TINY/SMALL heaps
+### 2. `free_size` never updated for TINY/SMALL heaps -- fix it (check it later)
 - **File:** `src/heap/heap.c:73-86` (create_new_heap), `src/malloc.c` (start_malloc), `src/free.c` (start_free)
 - **Severity:** Critical
 - **Description:** `create_new_heap` sets `free_size = heap_size - sizeof(t_heap)`, then creates an initial block that consumes all of that space but **never subtracts** the block size from `free_size`. Neither `start_malloc` nor `start_free` update `free_size` for TINY/SMALL heaps. As a result, `get_available_heap` always considers TINY/SMALL heaps as having free space, even when they are completely full.

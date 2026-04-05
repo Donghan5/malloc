@@ -110,7 +110,7 @@ void   remove_heap(t_heap *heap)
 	if (heap->next)
 		heap->next->prev = heap->prev;
 	
-		if (is_last_of_preallocated(heap))
+	if (is_last_of_preallocated(heap))
 	{
 		if (heap->group == TINY)
 			g_data.tiny_heap_count = 0;
