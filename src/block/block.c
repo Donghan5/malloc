@@ -58,11 +58,11 @@ t_heap  *find_free_block(t_block **block, size_t size, t_heap *heap_anchor)
 t_block *split_block(t_block *block, size_t size)
 {
     if (block->data_size - size < sizeof(t_block) + 16)
-    {
-        ft_putstr_fd("[MALLOC] Cannot split block\n", 1);
         return (NULL);
-    }
 
+    if (block->data_size <= size)
+        return (NULL);
+    
     // --- calculate new block position --- //
     t_block *new_block;
     new_block = BLOCK_SHIFT(block) + size;

@@ -14,22 +14,22 @@ void *realloc(void *ptr, size_t size);
 /*
 ** src/block
 */
-void	init_block(t_block *block, size_t size);
-void	remove_block_if_last(t_heap *heap, t_block *block);
-size_t   get_heap_size_from_block_size(const t_heap_group group, const size_t request_size);
-t_heap  *find_free_block(t_block **block, size_t size, t_heap *heap_anchor);
-t_block *split_block(t_block *block, size_t size);
-void    coalesce_block(t_block *block);
+void	    init_block(t_block *block, size_t size);
+void	    remove_block_if_last(t_heap *heap, t_block *block);
+size_t      get_heap_size_from_block_size(const t_heap_group group, const size_t request_size);
+t_heap      *find_free_block(t_block **block, size_t size, t_heap *heap_anchor);
+t_block     *split_block(t_block *block, size_t size);
+void        coalesce_block(t_block *block);
 /*
 ** src/heap
 */
-size_t	get_heap_group_from_block_size(const size_t size);
-t_heap	*get_heap_of_block_size(size_t size);
-t_heap	*get_last_heap(t_heap *heap);
-void	*append_empty_block(t_heap *heap, size_t size);
-t_heap	*create_new_heap(const t_heap_group group, const size_t size);
-void	remove_heap(t_heap *heap);
-t_block	*get_last_block(t_heap *heap);
+t_heap_group	get_heap_group_from_block_size(const size_t size);
+t_heap	        *get_heap_of_block_size(size_t size);
+t_heap	        *get_last_heap(t_heap *heap);
+void	        *append_empty_block(t_heap *heap, size_t size);
+t_heap	        *create_new_heap(const t_heap_group group, const size_t size);
+void	        remove_heap(t_heap *heap);
+t_block	        *get_last_block(t_heap *heap);
 
 /*
 ** src/tools

@@ -73,8 +73,8 @@ run: all $(TEST_EXEC)
 	@echo "--- Test finished ---"
 
 $(TEST_EXEC): main.c $(NAME)
-	$(CC) main.c -o $(TEST_EXEC) -I $(PATH_INC) ./$(NAME)
+	$(CC) main.c -o $(TEST_EXEC) -I $(PATH_INC) ./$(NAME) -lpthread
 
 valgrind: all $(TEST_EXEC)
-	valgrind --leak-check=full --show-leak-kinds=all ./$(TEST_EXEC)
+	valgrind --soname-synonyms=somalloc=libft_malloc_x86_64_Linux.so ./$(TEST_EXEC)
 	@echo "--- Valgrind finished ---"

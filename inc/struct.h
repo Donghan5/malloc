@@ -14,6 +14,7 @@
 # define STRUCT_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 /*
 ** Heap group enumeration

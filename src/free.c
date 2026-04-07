@@ -34,11 +34,17 @@ void	start_free(void *ptr)
 		{
 			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
 			heap->free_size += (block->data_size + sizeof(t_block));
-			// --- add for coalesce and heap free logic --- //
+			if (block->next && block->next->is_free)
+				heap->block_count--;
+			if (block->prev && block->prev->is_free)
+				heap->block_count--;
 			coalesce_block(block);
 			first = (t_block *)HEAP_SHIFT(heap);
 			if (first->prev == NULL && first->next == NULL && first->is_free == true)
+			{
+				heap->block_count = 0;
 				remove_heap(heap);
+			}
 		}
 
 		else if (heap->group == LARGE)

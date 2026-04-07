@@ -15,7 +15,7 @@
 /*
 ** Description: Determine the heap group based on the requested block size.
 */
-size_t   get_heap_group_from_block_size(const size_t size)
+t_heap_group   get_heap_group_from_block_size(const size_t size)
 {
     if (size <= (size_t)TINY_BLOCK_SIZE)
         return (TINY);

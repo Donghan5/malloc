@@ -384,6 +384,72 @@ static void	test_stress_large(void)
 }
 
 /* ================================================================ */
+/*  7. Multi-thread – concurrent malloc/free from N threads         */
+/* ================================================================ */
+
+#define THREAD_COUNT	4
+#define ALLOCS_PER_THR	50
+
+static void	*thread_routine(void *arg)
+{
+	void	*ptrs[ALLOCS_PER_THR];
+	int		i;
+
+	(void)arg;
+	i = 0;
+	while (i < ALLOCS_PER_THR)
+	{
+		ptrs[i] = malloc(64 + i * 8);
+		if (ptrs[i])
+			fill_pattern(ptrs[i], 0xBB, 64);
+		i++;
+	}
+	i = 0;
+	while (i < ALLOCS_PER_THR)
+	{
+		if (ptrs[i])
+		{
+			if (!verify_pattern(ptrs[i], 0xBB, 64))
+				ft_putstr_fd("  [THREAD] data corruption detected\n", 1);
+			free(ptrs[i]);
+		}
+		i++;
+	}
+	return (NULL);
+}
+
+static void	test_multithread(void)
+{
+	pthread_t	threads[THREAD_COUNT];
+	int			i;
+	int			ok;
+
+	section("7. Multi-thread – concurrent malloc/free");
+
+	i = 0;
+	ok = 1;
+	while (i < THREAD_COUNT)
+	{
+		if (pthread_create(&threads[i], NULL, thread_routine, NULL) != 0)
+		{
+			ft_putstr_fd("  pthread_create failed\n", 1);
+			ok = 0;
+		}
+		i++;
+	}
+	i = 0;
+	while (i < THREAD_COUNT)
+	{
+		pthread_join(threads[i], NULL);
+		i++;
+	}
+	check(ok, "all threads completed without crash");
+
+	ft_putstr_fd("\n  Heap after multi-thread test:\n", 1);
+	show_alloc_mem();
+}
+
+/* ================================================================ */
 /*  main                                                            */
 /* ================================================================ */
 
@@ -397,6 +463,7 @@ int	main(void)
 	test_realloc_edge();
 	test_realloc_data();
 	test_stress_large();
+	test_multithread();
 
 	ft_putstr_fd("\n===== Test Suite End =====\n", 1);
 	return (0);
