@@ -2,23 +2,29 @@
 
 ## Build Error
 
-### 1. Misleading indentation in `remove_heap` --- fix it (check it later)
+### 1. Misleading indentation in `remove_heap` ~~--- fix it (check it later)~~ ✅ FIXED (2026-04-06)
 - **File:** `src/heap/heap.c:110-113`
 - **Severity:** Build-breaking (`-Werror=misleading-indentation`)
 - **Description:** The second `if (is_last_of_preallocated(...))` is indented as if guarded by the `if (heap->next)` above it, but it is not. GCC treats this as an error with `-Werror`.
 - **Fix:** Align the indentation of the second `if` to the same level as the first `if`.
+- **Verified:** Both `if (heap->next)` (line 110) and `if (is_last_of_preallocated(heap))` (line 113) are now at the same indentation level.
 
 ---
 
 ## Critical Bugs
 
-### 2. `free_size` never updated for TINY/SMALL heaps -- fix it (check it later)
+### 2. `free_size` never updated for TINY/SMALL heaps ~~-- fix it (check it later)~~ ✅ FIXED (2026-04-06) — minor residual issue remains
 - **File:** `src/heap/heap.c:73-86` (create_new_heap), `src/malloc.c` (start_malloc), `src/free.c` (start_free)
 - **Severity:** Critical
 - **Description:** `create_new_heap` sets `free_size = heap_size - sizeof(t_heap)`, then creates an initial block that consumes all of that space but **never subtracts** the block size from `free_size`. Neither `start_malloc` nor `start_free` update `free_size` for TINY/SMALL heaps. As a result, `get_available_heap` always considers TINY/SMALL heaps as having free space, even when they are completely full.
 - **Fix:** Subtract `sizeof(t_block) + data_size` from `free_size` after creating the initial block. Update `free_size` on every allocation and free for TINY/SMALL heaps.
+- **Verified:**
+  - `create_new_heap`: leaving `free_size = heap_size - sizeof(t_heap)` is semantically correct — the initial block is free, so `free_size` correctly reflects full available space.
+  - `start_malloc`: now decrements `heap->free_size -= (size + sizeof(t_block))` on both TINY/SMALL allocation paths (lines 56, 67). ✓
+  - `start_free`: now increments `heap->free_size += (block->data_size + sizeof(t_block))` for TINY/SMALL (line 36). ✓
+- **Residual issue (minor):** When `split_block` cannot split (exact-fit case), `block->data_size` stays at `original_data_size > size`, but `start_malloc` subtracts only `size + sizeof(t_block)` instead of `block->data_size + sizeof(t_block)`. This causes `free_size` to drift upward over repeated no-split alloc/free cycles. It won't cause memory corruption (no free block exists to match the phantom `free_size`), but may cause unnecessary heap creation. Proper fix: use `block->data_size + sizeof(t_block)` after the `split_block` call.
 
-### 3. `start_malloc` second path corrupts memory
+### 3. `start_malloc` second path corrupts memory -- seems fix, check it later
 - **File:** `src/malloc.c:59-67`
 - **Severity:** Critical (memory corruption)
 - **Description:** When `find_free_block` fails and `get_heap_of_block_size` returns an **existing** heap (due to stale `free_size` from bug #2), the code does `block = (t_block *)HEAP_SHIFT(heap)` and uses the first block blindly. That first block may already be allocated, leading to memory corruption when `split_block` and `is_free = false` are applied to it.
