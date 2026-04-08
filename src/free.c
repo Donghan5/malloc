@@ -22,6 +22,8 @@ void	start_free(void *ptr)
 	t_block	*block;
 	t_block	*first;
 
+	init_debug_flags();
+
 	heap = g_data.heap_anchor;
 	if (!ptr || !heap)
 		return ;
@@ -32,7 +34,6 @@ void	start_free(void *ptr)
 		
 		if (heap->group == TINY || heap->group == SMALL)
 		{
-			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
 			heap->free_size += (block->data_size + sizeof(t_block));
 			if (block->next && block->next->is_free)
 				heap->block_count--;
@@ -49,11 +50,25 @@ void	start_free(void *ptr)
 
 		else if (heap->group == LARGE)
 		{
-			ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
+			if (g_data.scribble)
+				ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size);
 			heap->free_size += (block->data_size + sizeof(t_block));
 			heap->block_count--;
 			remove_heap(heap);
 		}
+	}
+}
+
+static void	debug_free(void *ptr)
+{
+	if (g_data.debug)
+	{
+		// from have to be like free(memory address)
+		ft_putstr_fd("[MALLOC] ", 1);
+		ft_putstr_fd("free", 1);
+		ft_putstr_fd("(", 1);
+		print_memory_address_portable(ptr);
+		ft_putstr_fd(")\n", 1);
 	}
 }
 
@@ -68,5 +83,6 @@ void	free(void *ptr)
 {
 	pthread_mutex_lock(&g_malloc_mutex);
 	start_free(ptr);
+	debug_free(ptr);
 	pthread_mutex_unlock(&g_malloc_mutex);
 }

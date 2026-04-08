@@ -31,6 +31,8 @@ void *start_realloc(void *ptr, size_t size)
 		start_free(ptr);
 		return (NULL);
 	}
+
+	init_debug_flags();
 	
 	heap = g_data.heap_anchor;
 	size = (size + 15) & ~15;
@@ -41,7 +43,15 @@ void *start_realloc(void *ptr, size_t size)
 	
 	original_size = block->data_size;
 	if (original_size >= size)
+	{
+		if (split_block(block, size))
+		{
+			heap->block_count++;
+			heap->free_size += (original_size - size);
+			return (ptr);
+		}
 		return (ptr);
+	}
 
 	new_ptr = start_malloc(size);
 	if (!new_ptr)
@@ -51,6 +61,21 @@ void *start_realloc(void *ptr, size_t size)
 	return (new_ptr);
 }
 
+static void	debug_realloc(void *ptr, size_t size, void *result)
+{
+	if (g_data.debug)
+	{
+		ft_putstr_fd("[MALLOC] ", 1);
+		ft_putstr_fd("realloc", 1);
+		ft_putstr_fd("(", 1);
+		print_memory_address_portable(ptr);
+		ft_putstr_fd(", ", 1);
+		ft_print_unsigned_fd(size, 1);
+		ft_putstr_fd(") = ", 1);
+		print_memory_address_portable(result);
+		ft_putstr_fd("\n", 1);
+	}
+}
 
 /**
  * Function: realloc
@@ -64,6 +89,7 @@ void	*realloc(void *ptr, size_t size)
 	void *result;
 	pthread_mutex_lock(&g_malloc_mutex);
 	result = start_realloc(ptr, size);
+	debug_realloc(ptr, size, result);
 	pthread_mutex_unlock(&g_malloc_mutex);
 	return (result);
 }

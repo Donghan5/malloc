@@ -45,6 +45,9 @@ void	*ft_memmove(void *dest, const void *src, size_t len);
 void	print_memory_address_portable(void *addr);
 void	ft_print_unsigned_fd(unsigned long long n, int fd);
 void	search_pointer(t_heap **heap_ptr, t_block **block_ptr, t_heap *heap, void *ptr);
+void	ft_print_hex_dump(void *addr, size_t size);
+void	init_debug_flags(void);
+
 
 /*
 ** src/malloc.c, free.c, realloc.c

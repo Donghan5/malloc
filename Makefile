@@ -41,8 +41,7 @@ all: setup $(NAME)
 $(NAME): $(OBJECTS)
 	$(CC) $(FLAGS_LIB) -o $@ $(OBJECTS)
 	@rm -f $(LIB_NAME)
-#	ln -s $(NAME) $(LIB_NAME)
-	cp $(NAME) $(LIB_NAME)
+	ln -s $(NAME) $(LIB_NAME)
 	@echo "Make done"
 
 $(PATH_OBJ)/%.o: %.c
@@ -78,3 +77,9 @@ $(TEST_EXEC): main.c $(NAME)
 valgrind: all $(TEST_EXEC)
 	valgrind --soname-synonyms=somalloc=libft_malloc_x86_64_Linux.so ./$(TEST_EXEC)
 	@echo "--- Valgrind finished ---"
+
+debug_mode: all $(TEST_EXEC)
+	MALLOC_DEBUG=1 ./$(TEST_EXEC)
+
+scribble_mode: all $(TEST_EXEC)
+	MALLOC_SCRIBBLE=1 ./$(TEST_EXEC)

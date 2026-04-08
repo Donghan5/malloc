@@ -15,7 +15,7 @@
  * Description: Implementation of show_alloc_mem function
  */
 
-#include "../inc/malloc.h"
+#include "../../inc/malloc.h"
 
 void    print_heap_header(char *name, t_heap *heap)
 {
@@ -45,6 +45,33 @@ size_t	print_block_list(t_block *block)
 			ft_print_unsigned_fd((unsigned long long)block->data_size, 1);
 			ft_putstr_fd(" bytes\n", 1);
 			total_size += block->data_size;	
+		}
+		block = block->next;
+	}
+	return (total_size);
+}
+
+size_t	print_block_list_ex(t_block *block)
+{
+	t_block	*start_addr;
+	t_block	*end_addr;
+	size_t	total_size;
+
+	total_size = 0;
+	while (block)
+	{
+		if (!block->is_free)
+		{
+			start_addr = (t_block *)BLOCK_SHIFT(block);
+			end_addr = (t_block *)((char *)start_addr + block->data_size);
+			print_memory_address_portable((void *)start_addr);
+			ft_putstr_fd(" - ", 1);
+			print_memory_address_portable((void *)end_addr);
+			ft_putstr_fd(" : ", 1);
+			ft_print_unsigned_fd((unsigned long long)block->data_size, 1);
+			ft_putstr_fd(" bytes\n", 1);
+			ft_print_hex_dump((void *)start_addr, block->data_size);
+			total_size += block->data_size;
 		}
 		block = block->next;
 	}
@@ -83,6 +110,42 @@ void	show_alloc_mem(void)
 	pthread_mutex_lock(&g_malloc_mutex);
 	ft_putstr_fd("===== Show Allocated Memory =====\n", 1);
 	print_alloc_mem();
+	ft_putstr_fd("=================================\n", 1);
+	pthread_mutex_unlock(&g_malloc_mutex);
+}
+
+void	print_alloc_mem_ex(void)
+{
+	t_heap	*current_heap;
+	size_t	total_allocated;
+
+	total_allocated = 0;
+
+	current_heap = g_data.heap_anchor;
+	while (current_heap)
+	{
+		if (current_heap->group == TINY)
+			print_heap_header("TINY", current_heap);
+		else if (current_heap->group == SMALL)
+			print_heap_header("SMALL", current_heap);
+		else
+			print_heap_header("LARGE", current_heap);
+	
+		if (current_heap->block_count)
+			total_allocated += print_block_list_ex((t_block *)HEAP_SHIFT(current_heap));
+		
+		current_heap = current_heap->next;
+	}
+	ft_putstr_fd("Total : ", 1);
+	ft_print_unsigned_fd(total_allocated, 1);
+	ft_putstr_fd(" bytes\n", 1);
+}
+
+void	show_alloc_mem_ex(void)
+{
+	pthread_mutex_lock(&g_malloc_mutex);
+	ft_putstr_fd("===== Show Allocated Memory (Hex Dump) =====\n", 1);
+	print_alloc_mem_ex();
 	ft_putstr_fd("=================================\n", 1);
 	pthread_mutex_unlock(&g_malloc_mutex);
 }

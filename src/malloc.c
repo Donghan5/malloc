@@ -31,6 +31,8 @@ void	*start_malloc(size_t size)
 	t_block			*block;
 	t_heap_group	group;
 
+	init_debug_flags();
+
 	if (!size)
 		return (NULL);
 	block = NULL;
@@ -76,6 +78,18 @@ void	*start_malloc(size_t size)
 	return (NULL);
 }
 
+static void	debug_malloc(void *result, size_t size)
+{
+	if (g_data.debug)
+	{
+		ft_putstr_fd("[MALLOC] ", 1);
+		print_memory_address_portable(result);
+		ft_putstr_fd(" : ", 1);
+		ft_print_unsigned_fd(size, 1);
+		ft_putstr_fd(" bytes\n", 1);
+	}
+}
+
 /**
  * Function: malloc
  * Description: Allocates memory of given size
@@ -86,8 +100,10 @@ void	*malloc(size_t size)
 {
 	void	*result;
 	pthread_mutex_lock(&g_malloc_mutex);
-	if ((result = start_malloc(size)))
+	result = start_malloc(size);
+	if (g_data.scribble && result)
 		ft_memset(result, 0xaa, size);
+	debug_malloc(result, size);
 	pthread_mutex_unlock(&g_malloc_mutex);
 	return (result);
 }

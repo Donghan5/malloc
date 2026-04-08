@@ -89,21 +89,23 @@
 - **Description:** When `original_size >= size` (shrink case), `start_realloc` returns the original pointer without splitting the block. The excess memory is wasted and cannot be reused by future allocations.
 - **Fix:** Call `split_block` when the difference is large enough to create a new free block.
 
-### 10. `ft_memset` in `free.c` runs before coalesce
+### 10. `ft_memset` in `free.c` runs before coalesce ✅ N/A (2026-04-07)
 - **File:** `src/free.c:35`
 - **Severity:** Low
 - **Description:** `ft_memset(BLOCK_SHIFT(block), 0xdd, block->data_size)` runs before `coalesce_block`. After coalescing, the absorbed block's metadata region becomes part of the data area but was never zeroed with `0xdd`.
 - **Fix:** Move `ft_memset` after `coalesce_block` to cover the full coalesced region, or accept the inconsistency.
+- **Verified:** No longer applicable. The `ft_memset` call was moved to the LARGE-only path (`src/free.c:51`), which does not call `coalesce_block`. The TINY/SMALL path has no `ft_memset` at all, so the ordering issue cannot occur.
 
 ---
 
 ## Code Quality Issues
 
-### 11. Include paths are fragile for `src/tools/` files
+### 11. Include paths are fragile for `src/tools/` files ✅ FIXED (2026-04-07)
 - **Files:** `src/tools/show_alloc_mem.c:19`, `src/tools/tools.c:13`
 - **Severity:** Low
 - **Description:** These files use `#include "../inc/malloc.h"` which resolves to `src/inc/malloc.h` (does not exist). It only compiles because GCC falls back to the `-I inc` search path. Other files in `src/tools/` (like `pointer.c`) correctly use `#include "../../inc/malloc.h"`.
 - **Fix:** Change to `#include "../../inc/malloc.h"` or `#include "malloc.h"`.
+- **Verified:** Both `show_alloc_mem.c:18` and `tools.c:13` now use `#include "../../inc/malloc.h"`. ✓
 
 ### 12. `main.c` has wrong include path
 - **File:** `main.c:13`
@@ -126,4 +128,4 @@
 | **P0 — Fix first** | ~~#1~~ ✅ | Build fixed |
 | **P1 — Fix next** | ~~#2~~ ✅, ~~#3~~ ✅, ~~#4~~ ✅, ~~#5~~ ✅ | All critical bugs fixed; #2 and #3 have minor residual notes |
 | **P2 — Should fix** | ~~#6~~ ✅, ~~#7~~ ✅, #9 | #9 still open (realloc shrink doesn't split) |
-| **P3 — Nice to fix** | ~~#8~~ ✅, #10, #11, #12, #13 | #10-#13 still open (code quality) |
+| **P3 — Nice to fix** | ~~#8~~ ✅, ~~#10~~ N/A, ~~#11~~ ✅, ~~#12~~ ✅, ~~#13~~ ✅ | All code quality issues resolved |

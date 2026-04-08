@@ -57,11 +57,17 @@ typedef struct s_block
 
 
 // --- wrapper structure --- //
+// --- flag explanation ---
+// debug : 1 -> on, 0 -> not verified -1 -> off
+// initialized : 1 -> initialized, 0 -> not initialized
 typedef struct s_malloc_data
 {
 	t_heap	*heap_anchor;
 	size_t	tiny_heap_count;
 	size_t	small_heap_count;
+	int		debug;
+	int		initialized;
+	int		scribble;
 }	t_malloc_data;
 
 #endif

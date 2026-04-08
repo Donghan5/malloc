@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../inc/malloc.h"
+#include "../../inc/malloc.h"
 
 size_t	ft_strlen(const char *s)
 {
@@ -108,6 +108,33 @@ void    print_memory_address_portable(void *addr)
     ft_putstr_fd(buffer, 1);
 }
 
+void	print_hex_byte(unsigned char byte)
+{
+	char	hex[2];
+
+	hex[0] = "0123456789abcdef"[byte / 16];
+	hex[1] = "0123456789abcdef"[byte % 16];
+	write(1, hex, 2);
+}
+
+void	ft_print_hex_dump(void *addr, size_t size)
+{
+	size_t	i;
+
+	i = 0;
+	while (i < size)
+	{
+		print_hex_byte(((unsigned char *)addr)[i]);
+		ft_putstr_fd(" ", 1);
+		// line change each 16 bytes
+		if ((i + 1) % 16 == 0)
+			ft_putstr_fd("\n", 1);
+		i++;
+	}
+	if (size % 16 != 0)
+		ft_putstr_fd("\n", 1);
+}
+
 void	ft_print_unsigned_fd(unsigned long long n, int fd)
 {
 	char			c;
@@ -118,4 +145,17 @@ void	ft_print_unsigned_fd(unsigned long long n, int fd)
 		ft_print_unsigned_fd(num / 10, fd);
 	c = (num % 10) + '0';
 	write(fd, &c, 1);
+}
+
+void	init_debug_flags(void)
+{
+	char	*val;
+
+	if (!g_data.initialized)
+	{
+		g_data.debug = (getenv("MALLOC_DEBUG") != NULL);
+		g_data.initialized = 1;
+	}
+	val = getenv("MALLOC_SCRIBBLE");
+	g_data.scribble = ! (val && val[0] == '0');
 }
