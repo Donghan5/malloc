@@ -12,6 +12,16 @@
 
 #include "../../inc/malloc.h"
 
+static size_t	round_up_to_page_size(size_t size)
+{
+	size_t	page_size;
+
+	page_size = (size_t)getpagesize();
+	if (!page_size || size > SIZE_MAX - (page_size - 1))
+		return (0);
+	return (((size + page_size - 1) / page_size) * page_size);
+}
+
 /*
 ** Description: Determine the heap group based on the requested block size.
 */
@@ -30,9 +40,16 @@ t_heap_group   get_heap_group_from_block_size(const size_t size)
 */
 size_t   get_heap_size_from_block_size(const t_heap_group group, const size_t request_size)
 {
+	size_t	heap_size;
+
 	if (group == TINY)
 		return (TINY_HEAP_ALLOCATION_SIZE);
 	else if (group == SMALL)
 		return (SMALL_HEAP_ALLOCATION_SIZE);
-	return (request_size + sizeof(t_heap) + sizeof(t_block));
+	if (request_size > SIZE_MAX - sizeof(t_heap))
+		return (0);
+	heap_size = request_size + sizeof(t_heap);
+	if (heap_size > SIZE_MAX - sizeof(t_block))
+		return (0);
+	return (round_up_to_page_size(heap_size + sizeof(t_block)));
 }

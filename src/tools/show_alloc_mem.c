@@ -109,6 +109,9 @@ void	show_alloc_mem(void)
 {
 	pthread_mutex_lock(&g_malloc_mutex);
 	ft_putstr_fd("===== Show Allocated Memory =====\n", 1);
+	ft_putstr_fd("Page size : ", 1);
+	ft_print_unsigned_fd((unsigned long long)getpagesize(), 1);
+	ft_putstr_fd(" bytes\n", 1);
 	print_alloc_mem();
 	ft_putstr_fd("=================================\n", 1);
 	pthread_mutex_unlock(&g_malloc_mutex);
@@ -145,6 +148,9 @@ void	show_alloc_mem_ex(void)
 {
 	pthread_mutex_lock(&g_malloc_mutex);
 	ft_putstr_fd("===== Show Allocated Memory (Hex Dump) =====\n", 1);
+	ft_putstr_fd("Page size : ", 1);
+	ft_print_unsigned_fd((unsigned long long)getpagesize(), 1);
+	ft_putstr_fd(" bytes\n", 1);
 	print_alloc_mem_ex();
 	ft_putstr_fd("=================================\n", 1);
 	pthread_mutex_unlock(&g_malloc_mutex);

@@ -28,7 +28,7 @@ void	start_free(void *ptr)
 	if (!ptr || !heap)
 		return ;
 	search_pointer(&heap, &block, heap, ptr);
-	if (block && heap)
+	if (block && heap && !block->is_free)
 	{
 		block->is_free = true;
 		

@@ -57,10 +57,9 @@ t_heap  *find_free_block(t_block **block, size_t size, t_heap *heap_anchor)
 // --- split function --- //
 t_block *split_block(t_block *block, size_t size)
 {
-    if (block->data_size - size < sizeof(t_block) + 16)
+    if (!block || !size || size >= block->data_size)
         return (NULL);
-
-    if (block->data_size <= size)
+    if (block->data_size - size < sizeof(t_block) + 16)
         return (NULL);
     
     // --- calculate new block position --- //
@@ -110,4 +109,3 @@ void    coalesce_block(t_block *block)
             prev_block->next->prev = prev_block;
     }
 }
- 

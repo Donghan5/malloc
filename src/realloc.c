@@ -31,14 +31,16 @@ void *start_realloc(void *ptr, size_t size)
 		start_free(ptr);
 		return (NULL);
 	}
+	if (size > SIZE_MAX - 15)
+		return (NULL);
 
 	init_debug_flags();
 	
 	heap = g_data.heap_anchor;
-	size = (size + 15) & ~15;
+	size = (size + 15) & ~(size_t)15;
 
 	search_pointer(&heap, &block, heap, ptr);
-	if (!heap || !block)
+	if (!heap || !block || block->is_free)
 		return (NULL);
 	
 	original_size = block->data_size;

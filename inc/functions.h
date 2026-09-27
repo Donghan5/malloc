@@ -38,6 +38,7 @@ void	print_heap_header(char *name, t_heap *heap);
 size_t	print_block_list(t_block *block);
 void	print_alloc_mem(void);
 void	show_alloc_mem(void);
+void	show_alloc_mem_ex(void);
 size_t	ft_strlen(const char *s);
 void	ft_putstr_fd(const char *str, int fd);
 void	*ft_memset(void *dest, int value, size_t count);

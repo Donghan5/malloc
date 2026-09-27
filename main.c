@@ -126,13 +126,16 @@ static void	test_malloc_basic(void)
 	check_aligned(p_small, "malloc(500)  aligned");
 	check_aligned(p_large, "malloc(3000) aligned");
 
-	/* malloc must initialise memory with 0xaa */
-	if (p_tiny)
-		check(verify_pattern(p_tiny,  0xaa, 100),  "malloc(100)  init 0xaa");
-	if (p_small)
-		check(verify_pattern(p_small, 0xaa, 500),  "malloc(500)  init 0xaa");
-	if (p_large)
-		check(verify_pattern(p_large, 0xaa, 3000), "malloc(3000) init 0xaa");
+	/* Scribble is opt-in; only verify its pattern when enabled. */
+	if (getenv("MALLOC_SCRIBBLE") && getenv("MALLOC_SCRIBBLE")[0] != '0')
+	{
+		if (p_tiny)
+			check(verify_pattern(p_tiny,  0xaa, 100), "malloc(100)  scribble");
+		if (p_small)
+			check(verify_pattern(p_small, 0xaa, 500), "malloc(500)  scribble");
+		if (p_large)
+			check(verify_pattern(p_large, 0xaa, 3000), "malloc(3000) scribble");
+	}
 
 	ft_putstr_fd("\n  Heap after basic allocs:\n", 1);
 	show_alloc_mem();
@@ -154,6 +157,8 @@ static void	test_malloc_edge(void)
 	void	*p129;
 	void	*p1024;
 	void	*p1025;
+	void	*pmax;
+	size_t	max_size;
 
 	section("2. malloc – size 0 and boundary values");
 
@@ -163,6 +168,8 @@ static void	test_malloc_edge(void)
 	p129  = malloc(129);
 	p1024 = malloc(1024);
 	p1025 = malloc(1025);
+	max_size = SIZE_MAX;
+	pmax  = malloc(max_size);
 
 	check(p0    == NULL, "malloc(0)    -> NULL");
 	check(p1    != NULL, "malloc(1)    TINY min  non-NULL");
@@ -170,6 +177,7 @@ static void	test_malloc_edge(void)
 	check(p129  != NULL, "malloc(129)  SMALL min non-NULL");
 	check(p1024 != NULL, "malloc(1024) SMALL max non-NULL");
 	check(p1025 != NULL, "malloc(1025) LARGE min non-NULL");
+	check(pmax == NULL, "malloc(SIZE_MAX) -> NULL");
 
 	if (p1)    check_aligned(p1,    "malloc(1)    aligned");
 	if (p128)  check_aligned(p128,  "malloc(128)  aligned");

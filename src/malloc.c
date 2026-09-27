@@ -35,8 +35,10 @@ void	*start_malloc(size_t size)
 
 	if (!size)
 		return (NULL);
+	if (size > SIZE_MAX - 15)
+		return (NULL);
 	block = NULL;
-	size = (size + 15) & ~15; 
+	size = (size + 15) & ~(size_t)15;
 	
 	group = get_heap_group_from_block_size(size);
 

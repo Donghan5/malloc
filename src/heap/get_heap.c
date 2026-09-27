@@ -48,6 +48,19 @@ t_heap    *get_heap_of_block_size(const size_t size)
     
     default_heap = g_data.heap_anchor;
     heap_group = get_heap_group_from_block_size(size);
+    if (heap_group == LARGE)
+    {
+        heap = create_new_heap(heap_group, size);
+        if (!heap)
+            return (NULL);
+        heap->next = default_heap;
+        if (heap->next)
+            heap->next->prev = heap;
+        g_data.heap_anchor = heap;
+        return (heap);
+    }
+    if (size > SIZE_MAX - sizeof(t_block))
+        return (NULL);
     heap = get_available_heap(default_heap, heap_group, size + sizeof(t_block));
     if (heap == NULL) {
         if (!(heap = create_new_heap(heap_group, size)))

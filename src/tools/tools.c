@@ -157,5 +157,5 @@ void	init_debug_flags(void)
 		g_data.initialized = 1;
 	}
 	val = getenv("MALLOC_SCRIBBLE");
-	g_data.scribble = ! (val && val[0] == '0');
+	g_data.scribble = (val && val[0] != '0');
 }
