@@ -53,7 +53,7 @@ clean:
 	@echo "Clean done"
 
 fclean: clean
-	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC)
+	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC) $(EDGE_TEST_EXEC)
 	@echo "Fclean done"
 
 setup:
@@ -83,3 +83,16 @@ debug_mode: all $(TEST_EXEC)
 
 scribble_mode: all $(TEST_EXEC)
 	MALLOC_SCRIBBLE=1 ./$(TEST_EXEC)
+
+# EDGE CASE TESTING RULES
+EDGE_TEST_EXEC = tests/edge_cases
+EDGE_TEST_CPPFLAGS = -I$(PATH_INC) -Dmalloc=edge_malloc -Dfree=edge_free -Drealloc=edge_realloc
+EDGE_TEST_CFLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
+
+.PHONY: test
+
+test: $(EDGE_TEST_EXEC)
+	./$(EDGE_TEST_EXEC)
+
+$(EDGE_TEST_EXEC): tests/edge_cases.c $(SOURCES) $(wildcard $(PATH_INC)/*.h) Makefile
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/edge_cases.c $(SOURCES) -pthread -o $@

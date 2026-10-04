@@ -1,1 +1,4 @@
 .vscode
+/tests/edge_cases
+/tests/core
+/tests/core.*
