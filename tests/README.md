@@ -6,24 +6,39 @@ Run from the project root:
 make test
 ```
 
-The suite requires a C compiler and pthread support on Linux/POSIX. It builds the
+The suite requires a C compiler, a POSIX shell, and pthread support on Linux/POSIX. It builds the
 test executable directly from source, independently of `main.c` and the shared
 library build. The executable is excluded from Git tracking.
 
 ## Execution and Results
 
-- Each test runs in a separate process using `fork()`. The remaining tests continue
-  even if one terminates with SIGSEGV.
+- `tests/run_tests.sh` starts a separate executable process for each test. The
+  remaining tests continue even if one terminates with SIGSEGV.
 - Each test has a 10-second timeout. Timeouts count as failures. Core dumps are disabled.
-- The executable returns 0 when every test passes and 1 if any assertion fails or
-  a test terminates due to a signal. `make` propagates test failures through its own
-  nonzero exit status.
+- Each test returns 0 on success and 1 on assertion failure. The shell runner
+  also counts signal termination as a failure and returns 1 if any test fails.
+  `make` propagates failures through its own nonzero exit status.
 - Allocator functions are renamed to `edge_malloc`, `edge_free`, and `edge_realloc`
   at compile time so that test output and libc allocations do not affect the
   allocator's global heap state. LD_PRELOAD integration and integration with
   system programs are outside the scope of this suite.
-- The failure test that sets `RLIMIT_AS` to 0 affects only its child process.
+- The failure test that sets `RLIMIT_AS` to 0 affects only that test process.
 - Tests for `malloc(0)` and `realloc(ptr, 0)` check this project's NULL-return policy.
+
+## Headers and Helper Functions
+
+The C test source includes only `inc/malloc.h`, which provides the project's
+headers and its existing system library declarations. Output uses
+`ft_putstr_fd` and `ft_print_unsigned_fd`; memory initialization uses `ft_memset`.
+Small local helpers compare strings, parse decimal and hexadecimal values, and
+check byte patterns without adding standard library dependencies such as
+`stdio.h` or `string.h`. Output capture and resource limits use the POSIX APIs
+already declared through `malloc.h`. Process isolation and result aggregation
+are handled by the shell runner.
+
+Running `./tests/edge_cases` prints the test count. Passing a zero-based index,
+for example `./tests/edge_cases 0`, runs a single test. Use `make test` to run
+the complete suite with crash isolation and core file suppression.
 
 ## Coverage
 

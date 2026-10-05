@@ -86,13 +86,15 @@ scribble_mode: all $(TEST_EXEC)
 
 # EDGE CASE TESTING RULES
 EDGE_TEST_EXEC = tests/edge_cases
+EDGE_TEST_HEADERS = $(PATH_INC)/malloc.h $(PATH_INC)/struct.h
+EDGE_TEST_HEADERS += $(PATH_INC)/functions.h $(PATH_INC)/define.h
 EDGE_TEST_CPPFLAGS = -I$(PATH_INC) -Dmalloc=edge_malloc -Dfree=edge_free -Drealloc=edge_realloc
 EDGE_TEST_CFLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
 
 .PHONY: test
 
 test: $(EDGE_TEST_EXEC)
-	./$(EDGE_TEST_EXEC)
+	sh tests/run_tests.sh ./$(EDGE_TEST_EXEC)
 
-$(EDGE_TEST_EXEC): tests/edge_cases.c $(SOURCES) $(wildcard $(PATH_INC)/*.h) Makefile
+$(EDGE_TEST_EXEC): tests/edge_cases.c $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
 	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/edge_cases.c $(SOURCES) -pthread -o $@

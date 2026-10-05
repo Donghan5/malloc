@@ -1,12 +1,59 @@
 #include "malloc.h"
-#include <stdio.h>
-#include <string.h>
-#include <sys/wait.h>
-#include <signal.h>
 
 #define CHECK(expr) do { if (!(expr)) { \
-    dprintf(2, "  %s:%d: %s\n", __FILE__, __LINE__, #expr); \
+    ft_putstr_fd("  " __FILE__ ":", 2); \
+    ft_print_unsigned_fd(__LINE__, 2); \
+    ft_putstr_fd(": " #expr "\n", 2); \
     return 1; } } while (0)
+
+/* Keep comparison and parsing independent of the allocator under test. */
+static int starts_with(const char *text, const char *prefix)
+{
+    while (*prefix && *text == *prefix)
+    {
+        ++text;
+        ++prefix;
+    }
+    return *prefix == '\0';
+}
+
+static char *find_text(char *text, const char *needle)
+{
+    while (*text)
+    {
+        if (starts_with(text, needle))
+            return text;
+        ++text;
+    }
+    return NULL;
+}
+
+static int parse_number(const char **cursor, unsigned int base, uintptr_t *value)
+{
+    const char *p = *cursor;
+    unsigned int digit;
+    size_t count = 0;
+
+    *value = 0;
+    while (*p)
+    {
+        if (*p >= '0' && *p <= '9')
+            digit = (unsigned int)(*p - '0');
+        else if (*p >= 'a' && *p <= 'f')
+            digit = (unsigned int)(*p - 'a' + 10);
+        else
+            break;
+        if (digit >= base)
+            break;
+        if (*value > (UINTPTR_MAX - digit) / base)
+            return 0;
+        *value = *value * base + digit;
+        ++p;
+        ++count;
+    }
+    *cursor = p;
+    return count != 0;
+}
 
 static int pattern(const unsigned char *p, size_t n, unsigned char value)
 {
@@ -45,7 +92,7 @@ static int alignment_and_boundaries(void)
     {
         p[i] = malloc(sizes[i]);
         CHECK(p[i] != NULL && (uintptr_t)p[i] % 16 == 0);
-        memset(p[i], (int)(i + 1), sizes[i]);
+        ft_memset(p[i], (int)(i + 1), sizes[i]);
     }
     for (i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i)
     {
@@ -88,7 +135,7 @@ static int realloc_null_and_zero(void)
 {
     unsigned char *p = realloc(NULL, 37);
     CHECK(p != NULL);
-    memset(p, 0x71, 37);
+    ft_memset(p, 0x71, 37);
     CHECK(realloc(p, 0) == NULL);
     p = malloc(37);
     CHECK(p != NULL);
@@ -100,7 +147,7 @@ static int realloc_same_and_shrink(void)
 {
     unsigned char *p = malloc(128), *q;
     CHECK(p != NULL);
-    memset(p, 0x39, 128);
+    ft_memset(p, 0x39, 128);
     q = realloc(p, 128);
     CHECK(q == p && pattern(q, 128, 0x39));
     q = realloc(p, 17);
@@ -116,13 +163,13 @@ static int realloc_growth(void)
     unsigned char *p = malloc(sizes[0]), *q;
     size_t i;
     CHECK(p != NULL);
-    memset(p, 0x59, sizes[0]);
+    ft_memset(p, 0x59, sizes[0]);
     for (i = 1; i < 5; ++i)
     {
         q = realloc(p, sizes[i]);
         CHECK(q != NULL && pattern(q, sizes[i - 1], 0x59));
         p = q;
-        memset(p, 0x59, sizes[i]);
+        ft_memset(p, 0x59, sizes[i]);
     }
     free(p);
     return 0;
@@ -133,7 +180,7 @@ static int realloc_overflow_preserves_original(void)
     unsigned char *p = malloc(64);
     volatile size_t impossible = SIZE_MAX;
     CHECK(p != NULL);
-    memset(p, 0xb7, 64);
+    ft_memset(p, 0xb7, 64);
     CHECK(realloc(p, impossible) == NULL);
     CHECK(pattern(p, 64, 0xb7) && owner(p) != NULL);
     free(p);
@@ -145,7 +192,7 @@ static int mmap_failure(void)
     struct rlimit limit = {0, 0};
     unsigned char *p = malloc(64);
     CHECK(p != NULL);
-    memset(p, 0x63, 64);
+    ft_memset(p, 0x63, 64);
     CHECK(setrlimit(RLIMIT_AS, &limit) == 0);
     CHECK(malloc(SMALL_BLOCK_SIZE * 16) == NULL);
     CHECK(realloc(p, SMALL_BLOCK_SIZE * 16) == NULL);
@@ -158,13 +205,13 @@ static int large_shrink_lifetime(int reverse)
 {
     unsigned char *a = malloc(SMALL_BLOCK_SIZE * 4), *b, *q;
     CHECK(a != NULL);
-    memset(a, 0x31, SMALL_BLOCK_SIZE * 4);
+    ft_memset(a, 0x31, SMALL_BLOCK_SIZE * 4);
     q = realloc(a, SMALL_BLOCK_SIZE * 2);
     CHECK(q != NULL && pattern(q, SMALL_BLOCK_SIZE * 2, 0x31));
     a = q;
     b = malloc(64);
     CHECK(b != NULL);
-    memset(b, 0x77, 64);
+    ft_memset(b, 0x77, 64);
     if (reverse)
     {
         free(b);
@@ -206,13 +253,13 @@ static int fragmented_capacity(void)
     {
         p[i] = malloc(TINY_BLOCK_SIZE);
         CHECK(p[i] != NULL);
-        memset(p[i], (int)(i % 251), TINY_BLOCK_SIZE);
+        ft_memset(p[i], (int)(i % 251), TINY_BLOCK_SIZE);
     }
     for (i = 0; i < 400; i += 2)
         free(p[i]);
     q = malloc(SMALL_BLOCK_SIZE);
     CHECK(q != NULL);
-    memset(q, 0x93, SMALL_BLOCK_SIZE);
+    ft_memset(q, 0x93, SMALL_BLOCK_SIZE);
     for (i = 1; i < 400; i += 2)
     {
         CHECK(pattern(p[i], TINY_BLOCK_SIZE, (unsigned char)(i % 251)));
@@ -231,7 +278,7 @@ static int large_unlink(void)
     {
         p[i] = malloc(SMALL_BLOCK_SIZE * 2);
         CHECK(p[i] != NULL);
-        memset(p[i], (int)(i + 1), SMALL_BLOCK_SIZE * 2);
+        ft_memset(p[i], (int)(i + 1), SMALL_BLOCK_SIZE * 2);
     }
     free(p[1]); /* Middle, then head, then tail. */
     CHECK(pattern(p[0], SMALL_BLOCK_SIZE * 2, 1));
@@ -261,10 +308,12 @@ static int diagnostics(void)
     CHECK(n > 0);
     output[n] = '\0';
     {
-        char expected[64];
-        snprintf(expected, sizeof(expected), "Total : %zu bytes", SMALL_BLOCK_SIZE * 2);
-        CHECK(strstr(output, "LARGE : ") != NULL);
-        CHECK(strstr(output, expected) != NULL);
+        const char *total = find_text(output, "Total : ");
+        uintptr_t value;
+        CHECK(find_text(output, "LARGE : ") != NULL && total != NULL);
+        total += ft_strlen("Total : ");
+        CHECK(parse_number(&total, 10, &value));
+        CHECK(value == SMALL_BLOCK_SIZE * 2 && starts_with(total, " bytes\n"));
     }
     free(p);
     return 0;
@@ -295,10 +344,13 @@ static int diagnostics_address_order(void)
     CHECK(n > 0);
     output[n] = '\0';
     cursor = output;
-    while ((cursor = strstr(cursor, "LARGE : ")) != NULL)
+    while ((cursor = find_text(cursor, "LARGE : ")) != NULL)
     {
-        unsigned long long address;
-        CHECK(sscanf(cursor, "LARGE : %llx", &address) == 1);
+        uintptr_t address;
+        const char *digits = cursor + ft_strlen("LARGE : ");
+        CHECK(starts_with(digits, "0x"));
+        digits += 2;
+        CHECK(parse_number(&digits, 16, &address) && *digits == '\n');
         CHECK(count == 0 || (uintptr_t)address > previous);
         previous = (uintptr_t)address;
         ++count;
@@ -310,7 +362,7 @@ static int diagnostics_address_order(void)
     return 0;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     struct { const char *name; int (*run)(void); } cases[] = {
         {"zero size / NULL", zero_and_null},
@@ -330,35 +382,32 @@ int main(void)
         {"show_alloc_mem total", diagnostics},
         {"show_alloc_mem ascending addresses", diagnostics_address_order}
     };
-    size_t i, failures = 0;
-    struct rlimit no_core = {0, 0};
-    if (setrlimit(RLIMIT_CORE, &no_core) != 0)
+    size_t count = sizeof(cases) / sizeof(cases[0]);
+    uintptr_t index;
+    const char *argument;
+    int result;
+
+    if (argc == 1)
     {
-        perror("setrlimit RLIMIT_CORE");
+        ft_print_unsigned_fd(count, 1);
+        ft_putstr_fd("\n", 1);
+        return 0;
+    }
+    if (argc != 2)
+        return 1;
+    argument = argv[1];
+    if (!parse_number(&argument, 10, &index) || *argument || index >= count)
+    {
+        ft_putstr_fd("Invalid test index\n", 2);
         return 1;
     }
-    for (i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i)
-    {
-        pid_t pid = fork();
-        int status;
-        if (pid < 0) { perror("fork"); return 1; }
-        if (pid == 0)
-        {
-            alarm(10);
-            _exit(cases[i].run());
-        }
-        if (waitpid(pid, &status, 0) != pid) { perror("waitpid"); return 1; }
-        if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-            printf("PASS %s\n", cases[i].name);
-        else
-        {
-            ++failures;
-            printf("FAIL %s", cases[i].name);
-            if (WIFSIGNALED(status)) printf(" (signal %d)", WTERMSIG(status));
-            putchar('\n');
-        }
-    }
-    printf("%zu/%zu passed\n", i - failures, i);
-    puts("UPCOMING FEATURE: thread safety, debug/scribble, show_alloc_mem_ex, defragmentation");
-    return failures ? 1 : 0;
+    ft_putstr_fd("RUN  ", 1);
+    ft_putstr_fd(cases[index].name, 1);
+    ft_putstr_fd("\n", 1);
+    alarm(10);
+    result = cases[index].run();
+    ft_putstr_fd(result ? "FAIL " : "PASS ", 1);
+    ft_putstr_fd(cases[index].name, 1);
+    ft_putstr_fd("\n", 1);
+    return result;
 }
