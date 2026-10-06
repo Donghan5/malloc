@@ -362,6 +362,10 @@ static int diagnostics_address_order(void)
     return 0;
 }
 
+#ifdef M1_TESTS
+#include "m1_cases.h"
+#endif
+
 int main(int argc, char **argv)
 {
     struct { const char *name; int (*run)(void); } cases[] = {
@@ -381,6 +385,14 @@ int main(int argc, char **argv)
         {"LARGE heap unlink order", large_unlink},
         {"show_alloc_mem total", diagnostics},
         {"show_alloc_mem ascending addresses", diagnostics_address_order}
+#ifdef M1_TESTS
+        , {"M1 TINY zone: 100 maximum blocks", m1_tiny_capacity}
+        , {"M1 SMALL zone: 100 maximum blocks", m1_small_capacity}
+        , {"M1 fragmented same-class exhaustion", m1_fragmentation}
+        , {"M1 memmove overlap and independent objects", m1_memmove}
+        , {"M1 deterministic descending heap list", m1_output_order}
+        , {"M1 page size output", m1_page_output}
+#endif
     };
     size_t count = sizeof(cases) / sizeof(cases[0]);
     uintptr_t index;

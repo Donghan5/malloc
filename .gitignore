@@ -2,3 +2,6 @@
 /tests/edge_cases
 /tests/core
 /tests/core.*
+
+/tests/m1_cases
+/tests/test_runner

@@ -5,7 +5,9 @@
 - 리뷰 기준: `Donghan5/malloc`, `main@5b89b15d8b71c742b98e4775bab180e579edb5c6`
 - 저장소: https://github.com/Donghan5/malloc/tree/5b89b15d8b71c742b98e4775bab180e579edb5c6
 - 검증 환경: 이전 리뷰에서 Linux x86_64, 페이지 크기 4096으로 빌드·실행
-- 이 문서는 수정 계획이다. 코드 수정이나 새로운 HEAD 재검증을 완료했다는 의미가 아니다.
+- 갱신일: 2026-10-06 (Europe/Paris)
+- 최신 검증: `90bdf749b9075b655544c4bd92e4f37c0f7f0a2c`에서 `make test`, 종료 코드 0, **16/16 통과**.
+- 이 문서는 수정 계획과 검증 기록이다. 필수 회귀 테스트 통과가 전체 필수 요구사항이나 보너스 완료를 의미하지는 않는다.
 - 현재 판정: **INCOMPLETE**
 
 ## 1. 목표와 평가 조건
@@ -14,7 +16,7 @@
 
 PDF는 첫 보너스로 pthread 기반 thread safety를 제시하고, 추가 기능으로 디버그 환경변수, `show_alloc_mem_ex()`, 해제 공간 defragmentation을 예시한다. 추가 기능 목록은 비 exhaustive 목록이다. 네 항목을 구현했다고 최대 점수가 자동 보장되지는 않는다.
 
-**평가 선행 조건:** 필수 구현이 완벽해야 보너스를 평가한다. 현재 재현된 SIGSEGV를 해결하기 전에는 보너스 평가 가능 상태로 표시하지 않는다.
+**평가 선행 조건:** 필수 구현이 완벽해야 보너스를 평가한다. 기존 LARGE 축소 후 SIGSEGV 반례는 최신 회귀 테스트에서 통과했다. 나머지 필수 계약과 보너스 검증이 남아 있으므로 보너스 평가 가능 상태는 아직 확정하지 않는다.
 
 | 항목 | 현재 확인된 상태 | 목표 |
 | --- | --- | --- |
@@ -22,9 +24,9 @@ PDF는 첫 보너스로 pthread 기반 thread safety를 제시하고, 추가 기
 | 디버그 환경변수 | MALLOC_DEBUG 로그, MALLOC_SCRIBBLE의 할당 시 0xaa 확인 | 변수 해석·적용 범위를 명시하고 malloc/free/realloc 경로별 검증 |
 | show_alloc_mem_ex() | hex dump 출력 확인 | 일반 조회의 정확성을 공유하고 알려진 바이트 패턴으로 검증 |
 | 해제 공간 defragmentation | 일반 양방향 병합 통과. realloc 축소 후 병합 불완전 | 인접 free 블록이 남지 않고 병합 공간을 재사용 |
-| 필수 구현 | 다른 살아 있는 할당까지 munmap하는 오류 재현 | 유효한 호출의 데이터·수명·분류·출력 계약 충족 |
+| 필수 구현 | 기존 LARGE 수명 오류·group 격리 회귀 통과, 필수 테스트 16/16 통과 | 유효한 호출의 데이터·수명·분류·출력 계약 충족 |
 
-## 2. 현재 수정이 필요한 부분
+## 2. 확인된 결함과 수정 상태
 
 증거 구분:
 - **실행 확인:** 이전 리뷰의 별도 반례에서 재현.
@@ -33,8 +35,8 @@ PDF는 첫 보너스로 pthread 기반 thread safety를 제시하고, 추가 기
 
 | 우선순위 | 문제 | 증거 | 위치 | 필요한 수정 범위 |
 | --- | --- | --- | --- | --- |
-| CRITICAL | LARGE를 축소한 뒤 그 잔여 공간에 다른 할당이 들어가며, 첫 할당 free가 두 번째 할당까지 해제 | 실행 확인: 두 번째 포인터 접근 SIGSEGV | src/realloc.c, src/block/block.c, src/free.c, src/heap/heap.c | LARGE 분할·재사용 정책과 mapping 소유권을 일관되게 변경 |
-| HIGH | 요청 크기와 heap 종류가 일치하지 않음 | 실행 확인: malloc(512) 뒤 malloc(64)가 SMALL에 배치 | find_free_block(), start_malloc() | free 블록 검색에 요청 group 조건 적용 |
+| 수정 확인 (기존 CRITICAL) | LARGE를 축소한 뒤 그 잔여 공간에 다른 할당이 들어가며, 첫 할당 free가 두 번째 할당까지 해제 | 이전 SIGSEGV 재현 → 최신 양쪽 free 순서 회귀 통과 | src/realloc.c, src/block/block.c, src/free.c, src/heap/heap.c | LARGE 축소 시 분할하지 않고 기존 mapping 유지. 별도 할당 수명 보존 확인 |
+| 수정 확인 (기존 HIGH) | 요청 크기와 heap 종류가 일치하지 않음 | 이전 SMALL 오배치 → 최신 size class isolation 통과 | find_free_block(), start_malloc() | find_free_block()에서 요청 group과 다른 heap을 건너뛰도록 적용 |
 | HIGH | realloc 축소 이후 인접 free 블록이 남음 | 실행 확인 | split_block(), start_realloc(), coalesce_block() | 축소 잔여 블록 병합 및 block_count/free_size 유지 |
 | HIGH | show_alloc_mem()이 주소 오름차순을 보장하지 않음 | 코드 확인: 연결 리스트 순서 그대로 출력 | src/tools/show_alloc_mem.c, heap 삽입 경로 | heap 출력 순서와 전체 합계 검증 |
 | HIGH | 서로 다른 할당의 포인터 차를 계산함 | 코드 확인: ft_memmove()의 d - s. 서로 다른 객체 간 포인터 뺄셈은 C의 정의된 연산이 아님 | src/tools/tools.c | 포인터 차에 의존하지 않는 복사 방향 결정 |
@@ -60,13 +62,15 @@ PDF는 첫 보너스로 pthread 기반 thread safety를 제시하고, 추가 기
 
 ### M0. CRITICAL 수명 오류와 group 분류 수정
 
+**상태:** 완료 — 아래 수명·분류 회귀는 `make test`에서 통과. LARGE 축소는 기존 블록을 분할하지 않아 mapping 안에 다른 독립 할당을 만들지 않는다.
+
 **범위:** `src/malloc.c`, `src/realloc.c`, `src/block/block.c`, `src/free.c`, 필요 시 `src/heap/heap.c`.
 
-- [ ] LARGE mapping 하나에 독립된 다른 할당이 들어가지 않도록 정책을 정한다.
-- [ ] LARGE realloc 축소 시 잔여 공간의 처리와 free 정책을 일치시킨다.
-- [ ] TINY/SMALL free 블록 검색에서 요청 크기에 대응하는 group만 선택한다.
-- [ ] free가 해제하는 mapping과 그 안의 살아 있는 블록 관계를 명시한다.
-- [ ] 다음 반례를 독립 프로세스의 회귀 테스트로 추가한다.
+- [x] LARGE mapping 하나에 독립된 다른 할당이 들어가지 않도록 정책을 정한다.
+- [x] LARGE realloc 축소 시 잔여 공간의 처리와 free 정책을 일치시킨다.
+- [x] TINY/SMALL free 블록 검색에서 요청 크기에 대응하는 group만 선택한다.
+- [x] free가 해제하는 mapping과 그 안의 살아 있는 블록 관계를 명시한다.
+- [x] 다음 반례를 독립 프로세스의 회귀 테스트로 추가한다.
 
 ```c
 char *a = malloc(4096);
@@ -81,10 +85,10 @@ free(b);
 이 코드는 실패 재현 순서이며 완성된 테스트 harness가 아니다. 실제 테스트는 NULL을 확인하고 realloc 결과를 임시 포인터로 받아 실패 시 원본을 보존한다.
 
 **완료 조건:**
-- [ ] 위 순서를 반복해도 SIGSEGV·데이터 손상이 없다.
-- [ ] b를 먼저 free하는 순서도 안전하다.
-- [ ] malloc(512) 뒤 malloc(64)가 각각 SMALL/TINY에 배치된다.
-- [ ] SMALL·LARGE가 이미 존재하는 상태에서도 모든 경계 크기의 group이 맞는다.
+- [x] 위 순서를 반복해도 SIGSEGV·데이터 손상이 없다.
+- [x] b를 먼저 free하는 순서도 안전하다.
+- [x] malloc(512) 뒤 malloc(64)가 각각 SMALL/TINY에 배치된다.
+- [x] SMALL·LARGE가 이미 존재하는 상태에서도 모든 경계 크기의 group이 맞는다.
 
 ### M1. 필수 계약과 출력 정확성 확보
 
@@ -93,10 +97,10 @@ free(b);
 - [ ] 총 free_size와 “요청을 수용하는 연속 블록”을 구분한다.
 - [ ] 적합한 연속 블록이 없으면 새 heap을 생성하며, 다른 free 공간 합계만으로 잘못 선택하지 않는다.
 - [ ] ft_memmove의 서로 다른 객체 간 포인터 뺄셈을 제거한다.
-- [ ] realloc 확장 성공 시 기존 데이터가 보존된다.
-- [ ] realloc 실패 시 원래 포인터·데이터·할당 상태가 유지된다.
-- [ ] 사이즈 정렬, metadata 합산, 페이지 반올림의 overflow 검사 유지.
-- [ ] 반환 주소가 해당 플랫폼의 기본 객체 정렬 요구사항을 충족한다.
+- [x] realloc 확장 성공 시 기존 데이터가 보존된다.
+- [x] realloc 실패 시 원래 포인터·데이터·할당 상태가 유지된다.
+- [x] 사이즈 정렬, metadata 합산, 페이지 반올림의 overflow 검사 유지.
+- [x] 반환 주소가 해당 플랫폼의 기본 객체 정렬 요구사항을 충족한다.
 - [ ] TINY/SMALL zone은 metadata까지 포함해 최대 크기 할당 100개 이상을 수용한다.
 - [ ] show_alloc_mem의 heap·block 주소가 오름차순이고 Total 합계가 일치한다.
 - [ ] 페이지 크기는 플랫폼별 허용 API로 취득하고 출력한다.
@@ -191,7 +195,7 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 
 ## 4. 검증 케이스 목록
 
-아래는 구현할 테스트 목록이다. 기존 저장소에 이 테스트가 모두 있다는 뜻은 아니다.
+아래는 전체 검증 계획이다. `tests/edge_cases.c`의 필수 16개 테스트는 통과했으며, 보너스·빌드 계약 등은 아직 이 실행으로 검증되지 않았다.
 
 | 케이스 | 입력·순서 | 확인할 결과 |
 | --- | --- | --- |
@@ -215,6 +219,7 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 저장소 루트에서 실행한다.
 
 ```sh
+make test
 make
 make run
 make debug_mode
@@ -224,19 +229,45 @@ make valgrind
 
 - 현재 main.c는 마지막에 항상 0을 반환하므로 종료 코드 0만으로 성공을 판단할 수 없다. M4/M5에서 수정할 항목이다.
 - make valgrind는 현재 x86_64_Linux 라이브러리 이름을 하드코딩한다. 다른 HOSTTYPE에서는 조정이 필요하다.
-- 새 회귀 테스트의 실행 명령은 테스트 파일과 target을 실제로 추가한 뒤 README에 기록한다.
+- `make test`는 allocator를 별도 이름으로 컴파일하고 각 테스트를 독립 프로세스에서 실행한다. 실패·signal 종료는 nonzero 결과로 집계한다. 공유 라이브러리 interposition, 보너스 및 OS별 빌드 계약은 이 테스트 범위 밖이다.
 - sanitizer나 Valgrind 적용 시 custom allocator의 interposition·도구 호환성을 먼저 확인한다. 도구 실행 성공만으로 allocator 정확성을 판정하지 않는다.
 
-## 6. 완료 기록 템플릿
+## 6. 최신 완료·검증 기록
 
 | 마일스톤 | 상태 | 검증 커밋 | 증거·테스트 결과 | 남은 미검증 |
 | --- | --- | --- | --- | --- |
-| M0 | 미완료 | — | — | — |
-| M1 | 미완료 | — | — | — |
+| M0 | 완료 | `90bdf749b9075b655544c4bd92e4f37c0f7f0a2c` | group 격리, LARGE 축소 후 양쪽 free 순서, 크기 경계 통과 | 공유 라이브러리 통합·다른 OS는 M5에서 검증 |
+| M1 | 일부 검증 | 동일 커밋 | 정렬·overflow·realloc 데이터 및 실패 시 원본 보존·fragmentation·출력 합계/주소 순서 통과 | ft_memmove 정의된 동작, 연속 공간 선택, zone 용량, 플랫폼·빌드 계약 등 |
 | M2 | 미완료 | — | — | — |
 | M3 | 미완료 | — | — | — |
 | M4 | 미완료 | — | — | — |
-| M5 | 미완료 | — | — | — |
+| M5 | 일부 검증 | 동일 커밋 | `make test`: 종료 코드 0, 실패 0, 16/16 통과 | M2–M4, 환경변수 활성화, OS별 실행, 호출 수, 전체 제출 게이트 |
 
 각 마일스톤은 코드를 작성했다는 이유만으로 완료 처리하지 않는다. 해당 완료 조건을 검증한 커밋과 실행 결과가 있어야 한다.
 
+
+### 2026-10-06 실행 결과
+
+- 명령: 저장소 루트에서 `make test`.
+- 결과: **16/16 통과**, 종료 코드 **0**, 실패 **0**.
+- 확인 범위: zero/NULL, 정렬·크기 경계·비중첩, group 격리, overflow, realloc 축소·확장·원본 보존, mmap 실패, LARGE 축소 수명, 최소 분할 잔여 공간, fragmentation/여러 heap, LARGE 리스트 해제 순서, 출력 Total·주소 순서.
+- 주소 순서 통과는 이번 mmap 배치에서의 결과이며 모든 배치를 증명하지 않는다.
+- 미검증: thread safety, debug/scribble, show_alloc_mem_ex, defragmentation. M2–M4는 미완료로 유지한다.
+- 이번 작업에서는 기존 코드의 테스트 결과를 기록했으며 allocator 소스를 추가 수정하지 않았다.
+
+### M1 추가 테스트 기록 (2026-10-06)
+
+- 실행: `make test-m1` — 기존 필수 16개 + M1 실행 6개 + 소스 점검 2개 + 빌드 점검 3개.
+- 결과: **22/27 통과**, 실패 **5**, `make` 종료 코드 **2**. M1은 미완료다.
+- 실행 실패: 같은 group 내 연속 공간 부족 시 새 heap 할당, 강제로 역순 연결한 heap의 주소 오름차순 출력.
+- 소스 점검 실패: `ft_memmove`의 `d - s`, Linux의 `getpagesize()` 사용. 소스 패턴 점검이며 C 정의된 동작 전체를 증명하지 않는다.
+- 빌드 실패: `inc/define.h` 변경 후 공유 라이브러리 object 재빌드 없음.
+- 추가 통과: TINY/SMALL 단일 zone의 최대 크기 100개 수용, max_align_t 정렬, memmove 기능, 페이지 크기 출력, HOSTTYPE fallback·이름·symlink, 변경 없는 두 번째 make.
+- 기존 `make test`도 재실행하여 **16/16 통과** 확인. allocator 소스는 수정하지 않았다.
+- 상세 범위·한계: `tests/README.md`의 M1 Contract Tests. getenv 사용 근거, 다른 OS, mixed-class·block 출력 전체 검증은 아직 남아 있다.
+
+### 테스트 언어 통일
+
+- 필수·M1 실행기와 검증 로직을 `tests/run_tests.c`로 통일했다.
+- Python 실행기와 shell 테스트 스크립트는 제거했다. `make test`, `make test-m1` 명령은 유지한다.
+- C 실행기는 fork/exec로 각 테스트를 격리하고 timeout·signal 종료·실패를 집계한다. M1 소스 점검과 임시 복사본의 빌드 계약 점검도 C에서 수행한다.

@@ -53,7 +53,7 @@ clean:
 	@echo "Clean done"
 
 fclean: clean
-	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC) $(EDGE_TEST_EXEC)
+	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC) $(EDGE_TEST_EXEC) $(M1_TEST_EXEC) $(TEST_RUNNER)
 	@echo "Fclean done"
 
 setup:
@@ -85,6 +85,7 @@ scribble_mode: all $(TEST_EXEC)
 	MALLOC_SCRIBBLE=1 ./$(TEST_EXEC)
 
 # EDGE CASE TESTING RULES
+TEST_RUNNER = tests/test_runner
 EDGE_TEST_EXEC = tests/edge_cases
 EDGE_TEST_HEADERS = $(PATH_INC)/malloc.h $(PATH_INC)/struct.h
 EDGE_TEST_HEADERS += $(PATH_INC)/functions.h $(PATH_INC)/define.h
@@ -93,8 +94,22 @@ EDGE_TEST_CFLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
 
 .PHONY: test
 
-test: $(EDGE_TEST_EXEC)
-	sh tests/run_tests.sh ./$(EDGE_TEST_EXEC)
+test: $(EDGE_TEST_EXEC) $(TEST_RUNNER)
+	./$(TEST_RUNNER) ./$(EDGE_TEST_EXEC)
 
 $(EDGE_TEST_EXEC): tests/edge_cases.c $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
 	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/edge_cases.c $(SOURCES) -pthread -o $@
+
+# M1 contract suite includes mandatory regressions and isolated build checks.
+.PHONY: test-m1
+M1_TEST_EXEC = tests/m1_cases
+
+test-m1: $(M1_TEST_EXEC) $(TEST_RUNNER)
+	./$(TEST_RUNNER) ./$(M1_TEST_EXEC) --m1
+
+$(M1_TEST_EXEC): tests/edge_cases.c tests/m1_cases.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) -DM1_TESTS tests/edge_cases.c $(SOURCES) -pthread -o $@
+
+
+$(TEST_RUNNER): tests/run_tests.c Makefile
+	$(CC) -std=gnu11 -Wall -Wextra -Werror -O0 -g $< -o $@

@@ -6,16 +6,16 @@ Run from the project root:
 make test
 ```
 
-The suite requires a C compiler, a POSIX shell, and pthread support on Linux/POSIX. It builds the
+The suite requires a C compiler, POSIX process APIs, `make`, and pthread support on Linux/POSIX. It builds the
 test executable directly from source, independently of `main.c` and the shared
 library build. The executable is excluded from Git tracking.
 
 ## Execution and Results
 
-- `tests/run_tests.sh` starts a separate executable process for each test. The
+- `tests/run_tests.c` starts a separate executable process for each test. The
   remaining tests continue even if one terminates with SIGSEGV.
 - Each test has a 10-second timeout. Timeouts count as failures. Core dumps are disabled.
-- Each test returns 0 on success and 1 on assertion failure. The shell runner
+- Each test returns 0 on success and 1 on assertion failure. The C runner
   also counts signal termination as a failure and returns 1 if any test fails.
   `make` propagates failures through its own nonzero exit status.
 - Allocator functions are renamed to `edge_malloc`, `edge_free`, and `edge_realloc`
@@ -34,7 +34,7 @@ Small local helpers compare strings, parse decimal and hexadecimal values, and
 check byte patterns without adding standard library dependencies such as
 `stdio.h` or `string.h`. Output capture and resource limits use the POSIX APIs
 already declared through `malloc.h`. Process isolation and result aggregation
-are handled by the shell runner.
+are handled by the C runner.
 
 Running `./tests/edge_cases` prints the test count. Passing a zero-based index,
 for example `./tests/edge_cases 0`, runs a single test. Use `make test` to run
@@ -66,17 +66,55 @@ is excluded from the mandatory contract tests.
 
 ## Current Results
 
-The current implementation passed **13 of 16 tests**.
+The implementation passed **16 of 16 tests** on 2026-10-06 with `make test`.
+The LARGE lifetime and size class isolation regressions now pass.
+This result covers this suite only; see the stricter M1 checks below.
 
-- `size class isolation`: fails because a TINY request is placed in an existing SMALL heap.
-- `LARGE shrink: free original first`: SIGSEGV when accessing a separate allocation
-  that should still be live.
-- `LARGE shrink: free neighbor first`: the original data survives, but the final
-  free causes SIGSEGV.
+## M1 Contract Tests
 
-These failures expose implementation defects through regression tests. They are
-not skipped or treated as successful outcomes. The allocator implementation has
-not been modified as part of this testing work.
+```sh
+make test-m1
+```
+
+The runner is written in C and compiled as `tests/test_runner`; Python and shell
+test scripts are not required. Isolated build checks invoke `make` and `cp`. The target reuses all
+16 mandatory cases and adds six runtime cases in `m1_cases.h`:
+
+- 100 simultaneous maximum-size allocations in a single TINY or SMALL zone,
+  with data preservation and `max_align_t` alignment checks.
+- Exhaustion of a single TINY heap followed by isolated 16-byte holes: aggregate
+  free space must not prevent a larger TINY request from creating a new heap.
+- `ft_memmove` forward/backward overlap, independent objects, self-copy and zero length.
+- Ascending diagnostic heap addresses with an explicitly descending internal list,
+  independent of mmap address order, plus the live allocation total.
+- Printed page size compared with `sysconf(_SC_PAGESIZE)`.
+
+`run_tests.c` runs every runtime case in a separate process with a 15-second outer
+timeout (the C harness also has a 10-second alarm). Debug/scribble variables are
+removed from the child environment. Failures and signal termination propagate to
+`make` as a nonzero exit status. Builds run in a temporary copy, leaving repository
+build artifacts and headers untouched. Three build checks cover empty HOSTTYPE
+fallback, library naming/symlink, an unchanged second build, and rebuilding after
+an `inc/define.h` change (naming/symlink/fallback form one check).
+
+Two narrowly scoped source audits flag the known `d - s` expression and Linux
+`getpagesize()` calls. These checks are explicitly source audits, not runtime
+proofs of undefined behavior or complete allowed-function validation. Passing
+functional memmove tests alone does not prove defined C behavior.
+
+Latest result: **22/27 checks passed, five failed**:
+
+- Same-class fragmented capacity: the larger request returns NULL.
+- Deterministic heap output ordering: descending addresses are printed.
+- Known cross-object pointer subtraction remains in `ft_memmove`.
+- Linux sources still use `getpagesize()`.
+- Changing `inc/define.h` does not rebuild shared-library objects.
+
+The allocator is deliberately left unchanged by this test addition. M1 remains
+incomplete. Manual review is still needed for the documented justification of
+bonus-only functions such as `getenv`, complete C portability, and supported OS
+contracts. The forced-order test covers LARGE heap headers; exhaustive mixed-class
+and block-address output validation is not claimed.
 
 ## Upcoming Feature — Bonus Part
 
