@@ -34,12 +34,18 @@ t_heap  *find_free_block(t_block **block, size_t size, t_heap *heap_anchor)
 {
     t_heap  *heap_curr;
     t_block *block_curr;
+    t_heap_group    request_group;
 
     heap_curr = heap_anchor;
+    request_group = get_heap_group_from_block_size(size);
     while (heap_curr)
     {
+        if (heap_curr->group != request_group)
+        {
+            heap_curr = heap_curr->next;
+            continue;
+        }
         block_curr = HEAP_SHIFT(heap_curr);
-        // --- block list --- //
         while (block_curr)
         {
             if (block_curr->is_free && block_curr->data_size >= size)

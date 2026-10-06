@@ -35,17 +35,19 @@ void *start_realloc(void *ptr, size_t size)
 		return (NULL);
 
 	init_debug_flags();
-	
+
 	heap = g_data.heap_anchor;
 	size = (size + 15) & ~(size_t)15;
 
 	search_pointer(&heap, &block, heap, ptr);
 	if (!heap || !block || block->is_free)
 		return (NULL);
-	
+
 	original_size = block->data_size;
 	if (original_size >= size)
 	{
+	    if (heap->group == LARGE)
+			return ptr;
 		if (split_block(block, size))
 		{
 			heap->block_count++;
