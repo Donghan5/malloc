@@ -1,76 +1,10 @@
-#include "malloc.h"
+#include "test_helpers.h"
 
 #define CHECK(expr) do { if (!(expr)) { \
     ft_putstr_fd("  " __FILE__ ":", 2); \
     ft_print_unsigned_fd(__LINE__, 2); \
     ft_putstr_fd(": " #expr "\n", 2); \
     return 1; } } while (0)
-
-/* Keep comparison and parsing independent of the allocator under test. */
-static int starts_with(const char *text, const char *prefix)
-{
-    while (*prefix && *text == *prefix)
-    {
-        ++text;
-        ++prefix;
-    }
-    return *prefix == '\0';
-}
-
-static char *find_text(char *text, const char *needle)
-{
-    while (*text)
-    {
-        if (starts_with(text, needle))
-            return text;
-        ++text;
-    }
-    return NULL;
-}
-
-static int parse_number(const char **cursor, unsigned int base, uintptr_t *value)
-{
-    const char *p = *cursor;
-    unsigned int digit;
-    size_t count = 0;
-
-    *value = 0;
-    while (*p)
-    {
-        if (*p >= '0' && *p <= '9')
-            digit = (unsigned int)(*p - '0');
-        else if (*p >= 'a' && *p <= 'f')
-            digit = (unsigned int)(*p - 'a' + 10);
-        else
-            break;
-        if (digit >= base)
-            break;
-        if (*value > (UINTPTR_MAX - digit) / base)
-            return 0;
-        *value = *value * base + digit;
-        ++p;
-        ++count;
-    }
-    *cursor = p;
-    return count != 0;
-}
-
-static int pattern(const unsigned char *p, size_t n, unsigned char value)
-{
-    size_t i;
-    for (i = 0; i < n; ++i)
-        if (p[i] != value)
-            return 0;
-    return 1;
-}
-
-static t_heap *owner(void *p)
-{
-    t_heap *heap = NULL;
-    t_block *block = NULL;
-    search_pointer(&heap, &block, g_data.heap_anchor, p);
-    return heap;
-}
 
 static int zero_and_null(void)
 {
@@ -392,6 +326,9 @@ int main(int argc, char **argv)
         , {"M1 memmove overlap and independent objects", m1_memmove}
         , {"M1 deterministic descending heap list", m1_output_order}
         , {"M1 page size output", m1_page_output}
+        , {"M1 mixed-class heap/block output and freed holes", m1_mixed_output}
+        , {"M1 empty output", m1_empty_output}
+        , {"M1 page geometry and extended page output", m1_page_geometry}
 #endif
     };
     size_t count = sizeof(cases) / sizeof(cases[0]);

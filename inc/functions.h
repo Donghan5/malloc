@@ -30,6 +30,7 @@ void	        *append_empty_block(t_heap *heap, size_t size);
 t_heap	        *create_new_heap(const t_heap_group group, const size_t size);
 void	        remove_heap(t_heap *heap);
 t_block	        *get_last_block(t_heap *heap);
+size_t          get_page_size(void);
 
 /*
 ** src/tools

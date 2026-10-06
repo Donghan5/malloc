@@ -11,12 +11,23 @@
 /* ************************************************************************** */
 
 #include "../../inc/malloc.h"
+#include <unistd.h>
+
+size_t  get_page_size(void)
+{
+    long    result;
+
+    result = sysconf(_SC_PAGESIZE);
+    if (result <=  0)
+        return (0);
+    return ((size_t)result);
+}
 
 static size_t	round_up_to_page_size(size_t size)
 {
 	size_t	page_size;
 
-	page_size = (size_t)getpagesize();
+	page_size = get_page_size();
 	if (!page_size || size > SIZE_MAX - (page_size - 1))
 		return (0);
 	return (((size + page_size - 1) / page_size) * page_size);

@@ -64,11 +64,15 @@ void	*start_malloc(size_t size)
 		
 		if (!block)
 		{
-			if (!(heap = get_heap_of_block_size(size)))
+			heap = create_new_heap(group, size);
+			if (!heap)
 				return (NULL);
+			heap->prev = NULL;
+			heap->next = g_data.heap_anchor;
+			if (heap->next)
+				heap->next->prev = heap;
+			g_data.heap_anchor = heap;
 			block = (t_block *)HEAP_SHIFT(heap);
-			if (!block->is_free || block->data_size < size)
-				return (NULL);
 			if (split_block(block, size))
 				heap->block_count++;
 			block->is_free = false;

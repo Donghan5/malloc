@@ -18,6 +18,9 @@ SOURCES += src/free.c src/malloc.c src/realloc.c
 
 OBJECTS = $(SOURCES:%.c=$(PATH_OBJ)/%.o)
 
+HEADERS = $(PATH_INC)/functions.h $(PATH_INC)/struct.h \
+		$(PATH_INC)/malloc.h $(PATH_INC)/define.h
+
 # **************************************************************************** #
 # VARIABLES         														   #
 # **************************************************************************** #
@@ -44,9 +47,9 @@ $(NAME): $(OBJECTS)
 	ln -s $(NAME) $(LIB_NAME)
 	@echo "Make done"
 
-$(PATH_OBJ)/%.o: %.c
+$(PATH_OBJ)/%.o: %.c $(HEADERS)
 	@mkdir -p $(@D)
-	$(CC) -c -o $@ $(FLAGS_CC) $^ -O0 -g -I $(PATH_INC)
+	$(CC) -c -o $@ $(FLAGS_CC) $< -O0 -g -I $(PATH_INC)
 
 clean:
 	@rm -rf $(PATH_OBJ)
@@ -97,8 +100,8 @@ EDGE_TEST_CFLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
 test: $(EDGE_TEST_EXEC) $(TEST_RUNNER)
 	./$(TEST_RUNNER) ./$(EDGE_TEST_EXEC)
 
-$(EDGE_TEST_EXEC): tests/edge_cases.c $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/edge_cases.c $(SOURCES) -pthread -o $@
+$(EDGE_TEST_EXEC): tests/edge_cases.c tests/test_helpers.c tests/test_helpers.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/edge_cases.c tests/test_helpers.c $(SOURCES) -pthread -o $@
 
 # M1 contract suite includes mandatory regressions and isolated build checks.
 .PHONY: test-m1
@@ -107,8 +110,8 @@ M1_TEST_EXEC = tests/m1_cases
 test-m1: $(M1_TEST_EXEC) $(TEST_RUNNER)
 	./$(TEST_RUNNER) ./$(M1_TEST_EXEC) --m1
 
-$(M1_TEST_EXEC): tests/edge_cases.c tests/m1_cases.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) -DM1_TESTS tests/edge_cases.c $(SOURCES) -pthread -o $@
+$(M1_TEST_EXEC): tests/edge_cases.c tests/m1_cases.c tests/m1_cases.h tests/test_helpers.c tests/test_helpers.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) -DM1_TESTS tests/edge_cases.c tests/m1_cases.c tests/test_helpers.c $(SOURCES) -pthread -o $@
 
 
 $(TEST_RUNNER): tests/run_tests.c Makefile

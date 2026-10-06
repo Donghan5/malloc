@@ -27,7 +27,7 @@ library build. The executable is excluded from Git tracking.
 
 ## Headers and Helper Functions
 
-The C test source includes only `inc/malloc.h`, which provides the project's
+The C tests use `test_helpers.h` and `inc/malloc.h`, which provide the project's
 headers and its existing system library declarations. Output uses
 `ft_putstr_fd` and `ft_print_unsigned_fd`; memory initialization uses `ft_memset`.
 Small local helpers compare strings, parse decimal and hexadecimal values, and
@@ -78,7 +78,7 @@ make test-m1
 
 The runner is written in C and compiled as `tests/test_runner`; Python and shell
 test scripts are not required. Isolated build checks invoke `make` and `cp`. The target reuses all
-16 mandatory cases and adds six runtime cases in `m1_cases.h`:
+16 mandatory cases and adds nine runtime cases implemented in `m1_cases.c` (`m1_cases.h` contains only function declarations):
 
 - 100 simultaneous maximum-size allocations in a single TINY or SMALL zone,
   with data preservation and `max_align_t` alignment checks.
@@ -102,19 +102,21 @@ Two narrowly scoped source audits flag the known `d - s` expression and Linux
 proofs of undefined behavior or complete allowed-function validation. Passing
 functional memmove tests alone does not prove defined C behavior.
 
-Latest result: **22/27 checks passed, five failed**:
+Latest result (2026-10-07): **30/30 checks passed**, exit status 0, on
+Fedora Linux 44 x86_64 with a 4096-byte page size. All five previously failing
+checks now pass. This is a local Fedora result, not a run on the school's machine.
 
-- Same-class fragmented capacity: the larger request returns NULL.
-- Deterministic heap output ordering: descending addresses are printed.
-- Known cross-object pointer subtraction remains in `ft_memmove`.
-- Linux sources still use `getpagesize()`.
-- Changing `inc/define.h` does not rebuild shared-library objects.
+The three added cases verify mixed TINY/SMALL/LARGE heap and block address order,
+exact payload endpoints and sizes, totals, freed holes, removed heaps, initial
+empty output and output after all frees; and page-aligned mappings, TINY/SMALL
+zone sizes, LARGE metadata-inclusive page rounding, overflow and the extended
+page-size output. Expected page sizes come from `sysconf`, not a 4096 constant.
+Output capture uses an unlinked temporary file to avoid pipe capacity deadlocks.
 
-The allocator is deliberately left unchanged by this test addition. M1 remains
-incomplete. Manual review is still needed for the documented justification of
-bonus-only functions such as `getenv`, complete C portability, and supported OS
-contracts. The forced-order test covers LARGE heap headers; exhaustive mixed-class
-and block-address output validation is not claimed.
+Manual review of the justification for bonus-only functions such as `getenv`
+remains. The school's target is Fedora/Linux; other OS execution is outside this
+verification. This suite does not prove every possible C portability property
+or validate the extended hex dump or concurrency contracts.
 
 ## Upcoming Feature — Bonus Part
 

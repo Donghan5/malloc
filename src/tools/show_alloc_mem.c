@@ -17,6 +17,27 @@
 
 #include "../../inc/malloc.h"
 
+static t_heap	*next_heap_by_address(t_heap *last)
+{
+    t_heap  *curr;
+    t_heap  *best;
+
+    curr = g_data.heap_anchor;
+    best = NULL;
+    while (curr)
+    {
+        if (!last || (uintptr_t)curr > (uintptr_t)last)
+        {
+            if (!best || (uintptr_t)curr < (uintptr_t)best)
+            {
+                best = curr;
+            }
+        }
+        curr = curr->next;
+    }
+    return (best);
+}
+
 void    print_heap_header(char *name, t_heap *heap)
 {
 	ft_putstr_fd(name, 1);
@@ -44,7 +65,7 @@ size_t	print_block_list(t_block *block)
 			ft_putstr_fd(" : ", 1);
 			ft_print_unsigned_fd((unsigned long long)block->data_size, 1);
 			ft_putstr_fd(" bytes\n", 1);
-			total_size += block->data_size;	
+			total_size += block->data_size;
 		}
 		block = block->next;
 	}
@@ -84,8 +105,8 @@ void    print_alloc_mem(void)
 	size_t	total_allocated;
 
 	total_allocated = 0;
-	current_heap = g_data.heap_anchor;
-	
+	current_heap = next_heap_by_address(NULL);
+
 	while (current_heap)
 	{
 		if (current_heap->group == TINY)
@@ -94,11 +115,11 @@ void    print_alloc_mem(void)
 			print_heap_header("SMALL", current_heap);
 		else
 			print_heap_header("LARGE", current_heap);
-		
-		if (current_heap->block_count) 
+
+		if (current_heap->block_count)
 			total_allocated += print_block_list((t_block *)HEAP_SHIFT(current_heap));
-		
-        current_heap = current_heap->next;
+
+        current_heap = next_heap_by_address(current_heap);
 	}
 	ft_putstr_fd("Total : ", 1);
 	ft_print_unsigned_fd(total_allocated, 1);
@@ -110,7 +131,7 @@ void	show_alloc_mem(void)
 	pthread_mutex_lock(&g_malloc_mutex);
 	ft_putstr_fd("===== Show Allocated Memory =====\n", 1);
 	ft_putstr_fd("Page size : ", 1);
-	ft_print_unsigned_fd((unsigned long long)getpagesize(), 1);
+	ft_print_unsigned_fd((unsigned long long)get_page_size(), 1);
 	ft_putstr_fd(" bytes\n", 1);
 	print_alloc_mem();
 	ft_putstr_fd("=================================\n", 1);
@@ -124,7 +145,7 @@ void	print_alloc_mem_ex(void)
 
 	total_allocated = 0;
 
-	current_heap = g_data.heap_anchor;
+	current_heap = next_heap_by_address(NULL);
 	while (current_heap)
 	{
 		if (current_heap->group == TINY)
@@ -133,11 +154,11 @@ void	print_alloc_mem_ex(void)
 			print_heap_header("SMALL", current_heap);
 		else
 			print_heap_header("LARGE", current_heap);
-	
+
 		if (current_heap->block_count)
 			total_allocated += print_block_list_ex((t_block *)HEAP_SHIFT(current_heap));
-		
-		current_heap = current_heap->next;
+
+		current_heap = next_heap_by_address(current_heap);
 	}
 	ft_putstr_fd("Total : ", 1);
 	ft_print_unsigned_fd(total_allocated, 1);
@@ -149,7 +170,7 @@ void	show_alloc_mem_ex(void)
 	pthread_mutex_lock(&g_malloc_mutex);
 	ft_putstr_fd("===== Show Allocated Memory (Hex Dump) =====\n", 1);
 	ft_putstr_fd("Page size : ", 1);
-	ft_print_unsigned_fd((unsigned long long)getpagesize(), 1);
+	ft_print_unsigned_fd((unsigned long long)get_page_size(), 1);
 	ft_putstr_fd(" bytes\n", 1);
 	print_alloc_mem_ex();
 	ft_putstr_fd("=================================\n", 1);

@@ -5,8 +5,9 @@
 - 리뷰 기준: `Donghan5/malloc`, `main@5b89b15d8b71c742b98e4775bab180e579edb5c6`
 - 저장소: https://github.com/Donghan5/malloc/tree/5b89b15d8b71c742b98e4775bab180e579edb5c6
 - 검증 환경: 이전 리뷰에서 Linux x86_64, 페이지 크기 4096으로 빌드·실행
-- 갱신일: 2026-10-06 (Europe/Paris)
-- 최신 검증: `90bdf749b9075b655544c4bd92e4f37c0f7f0a2c`에서 `make test`, 종료 코드 0, **16/16 통과**.
+- 갱신일: 2026-10-07 (Europe/Paris)
+- 최신 검증: HEAD `3c106d5910d1124fe0ec1103eaeb3fad8b1e8bcd` + 미커밋 수정 사항에서 `make test-m1`, 종료 코드 0, **30/30 통과** (실패 0).
+- 최신 실행 환경: Fedora Linux 44, x86_64, 페이지 크기 4096. 학교 환경도 Fedora이므로 Linux/Fedora를 M1 대상 플랫폼으로 삼는다. 필수 16개와 M1 실행 9개, 소스 점검 2개, 빌드 점검 3개를 포함한다.
 - 이 문서는 수정 계획과 검증 기록이다. 필수 회귀 테스트 통과가 전체 필수 요구사항이나 보너스 완료를 의미하지는 않는다.
 - 현재 판정: **INCOMPLETE**
 
@@ -38,12 +39,12 @@ PDF는 첫 보너스로 pthread 기반 thread safety를 제시하고, 추가 기
 | 수정 확인 (기존 CRITICAL) | LARGE를 축소한 뒤 그 잔여 공간에 다른 할당이 들어가며, 첫 할당 free가 두 번째 할당까지 해제 | 이전 SIGSEGV 재현 → 최신 양쪽 free 순서 회귀 통과 | src/realloc.c, src/block/block.c, src/free.c, src/heap/heap.c | LARGE 축소 시 분할하지 않고 기존 mapping 유지. 별도 할당 수명 보존 확인 |
 | 수정 확인 (기존 HIGH) | 요청 크기와 heap 종류가 일치하지 않음 | 이전 SMALL 오배치 → 최신 size class isolation 통과 | find_free_block(), start_malloc() | find_free_block()에서 요청 group과 다른 heap을 건너뛰도록 적용 |
 | HIGH | realloc 축소 이후 인접 free 블록이 남음 | 실행 확인 | split_block(), start_realloc(), coalesce_block() | 축소 잔여 블록 병합 및 block_count/free_size 유지 |
-| HIGH | show_alloc_mem()이 주소 오름차순을 보장하지 않음 | 코드 확인: 연결 리스트 순서 그대로 출력 | src/tools/show_alloc_mem.c, heap 삽입 경로 | heap 출력 순서와 전체 합계 검증 |
-| HIGH | 서로 다른 할당의 포인터 차를 계산함 | 코드 확인: ft_memmove()의 d - s. 서로 다른 객체 간 포인터 뺄셈은 C의 정의된 연산이 아님 | src/tools/tools.c | 포인터 차에 의존하지 않는 복사 방향 결정 |
-| MEDIUM | 총 free_size만으로 heap을 선택한 뒤 첫 블록만 검사하는 fallback 경로 | 코드 확인, 실패 입력 별도 재현 필요 | get_available_heap(), start_malloc() | 실제 사용 가능한 연속 free 블록을 기준으로 heap 선택 |
+| 수정 확인 (기존 HIGH) | show_alloc_mem()이 주소 오름차순을 보장하지 않음 | 강제로 역순 연결한 LARGE heap 출력·Total 회귀 통과 | src/tools/show_alloc_mem.c | next_heap_by_address()로 출력 순서 선택. 혼합 group·block 순서, 해제 블록 제외, 빈 상태·Total 회귀 추가 통과 |
+| 수정 확인 (기존 HIGH) | 서로 다른 할당의 포인터 차를 계산함 | d - s 소스 점검 및 memmove 기능 회귀 통과 | src/tools/tools.c | uintptr_t 정수 연산으로 변경. 소스 패턴 통과는 C 이식성 전체의 증명이 아님 |
+| 수정 확인 (기존 MEDIUM) | 총 free_size만으로 heap을 선택한 뒤 첫 블록만 검사하는 fallback 경로 | 같은 group 내 연속 공간 부족 회귀 통과 | get_available_heap(), start_malloc() | start_malloc()에서 적합한 free 블록이 없으면 새 heap 생성. 기존 fallback 경로 우회 |
 | MEDIUM | 멀티스레드 데이터 손상을 최종 실패 판정에 반영하지 않음 | 코드 확인 | main.c의 thread_routine(), test_multithread() | worker 결과 수집, 생성 성공 스레드만 join, 실패 exit code |
 | 검증 필요 | 재할당 후 메타데이터·빈 heap 회수·실패 시 원본 보존의 전체 계약 | 일부 테스트만 실행됨 | allocator 전반 | 아래 회귀 테스트로 확정 |
-| 검증 필요 | Linux 허용 함수·빌드 재실행·헤더 의존성 | PDF는 Linux에서 sysconf(_SC_PAGESIZE)를 명시, 현재 getpagesize() 사용 | inc/define.h, helper_heap.c, show_alloc_mem.c, Makefile | 플랫폼별 페이지 크기 취득 및 빌드 계약 점검 |
+| Linux 점검 통과 | Linux 페이지 API·빌드 재실행·헤더 의존성 | getpagesize() 소스 점검, 페이지 출력, HOSTTYPE fallback·symlink·재실행·define.h rebuild 통과 | inc/define.h, helper_heap.c, show_alloc_mem.c, Makefile | 다른 OS·전체 허용 함수 계약은 미검증 |
 
 현재 `Page size` 출력은 `show_alloc_mem()`과 `show_alloc_mem_ex()`에 존재한다. “출력 없음”을 현재 결함으로 다시 기록하지 않는다.
 
@@ -92,20 +93,22 @@ free(b);
 
 ### M1. 필수 계약과 출력 정확성 확보
 
+**상태:** Fedora에서 자동 검사 30/30 통과 (2026-10-07). show_alloc_mem 및 페이지 크기 항목을 재검증했다. getenv 사용 근거 문서화가 남아 M1 전체 완료 판정은 보류한다.
+
 **범위:** `get_heap.c`, `helper_heap.c`, `malloc.c`, `realloc.c`, `tools.c`, `show_alloc_mem.c`, 헤더 및 Makefile.
 
-- [ ] 총 free_size와 “요청을 수용하는 연속 블록”을 구분한다.
-- [ ] 적합한 연속 블록이 없으면 새 heap을 생성하며, 다른 free 공간 합계만으로 잘못 선택하지 않는다.
-- [ ] ft_memmove의 서로 다른 객체 간 포인터 뺄셈을 제거한다.
+- [x] 총 free_size와 “요청을 수용하는 연속 블록”을 구분한다.
+- [x] 적합한 연속 블록이 없으면 새 heap을 생성하며, 다른 free 공간 합계만으로 잘못 선택하지 않는다.
+- [x] ft_memmove의 서로 다른 객체 간 포인터 뺄셈을 제거한다.
 - [x] realloc 확장 성공 시 기존 데이터가 보존된다.
 - [x] realloc 실패 시 원래 포인터·데이터·할당 상태가 유지된다.
 - [x] 사이즈 정렬, metadata 합산, 페이지 반올림의 overflow 검사 유지.
 - [x] 반환 주소가 해당 플랫폼의 기본 객체 정렬 요구사항을 충족한다.
-- [ ] TINY/SMALL zone은 metadata까지 포함해 최대 크기 할당 100개 이상을 수용한다.
-- [ ] show_alloc_mem의 heap·block 주소가 오름차순이고 Total 합계가 일치한다.
-- [ ] 페이지 크기는 플랫폼별 허용 API로 취득하고 출력한다.
-- [ ] HOSTTYPE 미설정 시 fallback, 라이브러리 이름, symlink, 헤더 변경 시 rebuild를 검증한다.
-- [ ] 변경 없는 두 번째 make에서 불필요한 컴파일·링크가 없다.
+- [x] TINY/SMALL zone은 metadata까지 포함해 최대 크기 할당 100개 이상을 수용한다.
+- [x] show_alloc_mem의 heap·block 주소가 오름차순이고 Total 합계가 일치한다. — 혼합 TINY/SMALL/LARGE, 여러 block, 강제 역순 heap, free 후 hole·heap 제거, 빈 상태를 검증했다. Total은 요청 크기가 아닌 살아 있는 block의 data_size 합계다.
+- [x] 대상 플랫폼 Fedora/Linux에서 페이지 크기를 sysconf(_SC_PAGESIZE)로 취득하고 출력한다. — get_page_size(), 일반·확장 출력, TINY/SMALL zone 배수 및 LARGE metadata 포함 페이지 반올림·overflow 회귀 통과. 다른 OS는 이번 학교 환경 검증 범위 밖이다.
+- [x] HOSTTYPE 미설정 시 fallback, 라이브러리 이름, symlink, 헤더 변경 시 rebuild를 검증한다.
+- [x] 변경 없는 두 번째 make에서 불필요한 컴파일·링크가 없다.
 - [ ] 추가 보너스 함수 getenv 등의 사용은 방어 가능한 이유를 문서화한다.
 
 **완료 조건:** 모든 유효한 경계 입력에서 데이터 보존·정렬·분류·출력 검증을 통과하고, 실패 경로에서 allocator 상태를 잃지 않는다.
@@ -195,7 +198,7 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 
 ## 4. 검증 케이스 목록
 
-아래는 전체 검증 계획이다. `tests/edge_cases.c`의 필수 16개 테스트는 통과했으며, 보너스·빌드 계약 등은 아직 이 실행으로 검증되지 않았다.
+아래는 전체 검증 계획이다. `tests/edge_cases.c`의 필수 16개 테스트는 통과했으며, M1의 Linux 빌드 계약도 추가 실행에서 통과했다. 보너스 및 다른 OS는 아직 미검증이다.
 
 | 케이스 | 입력·순서 | 확인할 결과 |
 | --- | --- | --- |
@@ -220,6 +223,7 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 
 ```sh
 make test
+make test-m1
 make
 make run
 make debug_mode
@@ -237,7 +241,7 @@ make valgrind
 | 마일스톤 | 상태 | 검증 커밋 | 증거·테스트 결과 | 남은 미검증 |
 | --- | --- | --- | --- | --- |
 | M0 | 완료 | `90bdf749b9075b655544c4bd92e4f37c0f7f0a2c` | group 격리, LARGE 축소 후 양쪽 free 순서, 크기 경계 통과 | 공유 라이브러리 통합·다른 OS는 M5에서 검증 |
-| M1 | 일부 검증 | 동일 커밋 | 정렬·overflow·realloc 데이터 및 실패 시 원본 보존·fragmentation·출력 합계/주소 순서 통과 | ft_memmove 정의된 동작, 연속 공간 선택, zone 용량, 플랫폼·빌드 계약 등 |
+| M1 | 자동 검사 통과, 일부 미검증 | `3c106d5910d1124fe0ec1103eaeb3fad8b1e8bcd` + 미커밋 수정 | `make test-m1`: Fedora 44 x86_64, 종료 코드 0, 30/30 통과, 실패 0 | getenv 사용 근거, C 이식성 전체; 다른 OS는 학교 대상 범위 밖 |
 | M2 | 미완료 | — | — | — |
 | M3 | 미완료 | — | — | — |
 | M4 | 미완료 | — | — | — |
@@ -271,3 +275,24 @@ make valgrind
 - 필수·M1 실행기와 검증 로직을 `tests/run_tests.c`로 통일했다.
 - Python 실행기와 shell 테스트 스크립트는 제거했다. `make test`, `make test-m1` 명령은 유지한다.
 - C 실행기는 fork/exec로 각 테스트를 격리하고 timeout·signal 종료·실패를 집계한다. M1 소스 점검과 임시 복사본의 빌드 계약 점검도 C에서 수행한다.
+
+### M1 재검증 기록 (2026-10-07)
+
+- 검증 대상: HEAD `3c106d5910d1124fe0ec1103eaeb3fad8b1e8bcd` + 현재 미커밋 코드·테스트 수정 사항. HEAD 커밋 단독의 검증 결과로 해석하지 않는다.
+- 명령: 저장소 루트에서 `make test-m1`.
+- 결과: **27/27 통과**, 실패 **0**, 종료 코드 **0**. 필수 실행 16개 + M1 실행 6개 + 소스 점검 2개 + 빌드 점검 3개.
+- 이전 실패 5개 모두 통과: 같은 group 내 연속 공간 부족 시 새 heap 생성, 강제 역순 heap의 오름차순 출력, ft_memmove의 포인터 뺄셈 제거 점검, Linux 페이지 API 점검, define.h 변경 후 object 재빌드.
+- 기타 통과: TINY/SMALL 최대 크기 100개 수용 및 정렬·데이터 보존, memmove 기능, 페이지 크기 출력, HOSTTYPE fallback·라이브러리 이름·symlink, 변경 없는 두 번째 make.
+- 헤더 rebuild 검사는 임시 복사본의 헤더 시간을 미래로 설정하므로 make의 clock skew 경고가 출력됐다. 재컴파일·재링크 및 검사 통과, 종료 코드 0을 확인했다.
+- 한계: 소스 패턴 점검은 C 정의된 동작 전체를 증명하지 않는다. mixed-class·block 출력 전체, getenv 사용 근거, 다른 OS 및 보너스 검증은 남아 있다. 전체 판정은 INCOMPLETE로 유지한다.
+- 이번 작업에서는 테스트 실행과 본 문서 갱신만 수행했으며 allocator 구현은 수정하지 않았다.
+
+### show_alloc_mem·페이지 크기 재점검 (2026-10-07, Fedora)
+
+- 환경: `/etc/os-release`에서 Fedora Linux 44 확인, x86_64, `getconf PAGESIZE`는 4096. 학교의 Fedora 버전과 동일한지는 확인하지 않았으며 학교 장비에서 직접 실행한 결과는 아니다.
+- 명령·결과: `make test-m1`, **30/30 통과**, 실패 **0**, 종료 코드 **0**. 기존 27개에 실행 테스트 3개 추가.
+- show_alloc_mem: 혼합 TINY/SMALL/LARGE heap을 의도적으로 역순 연결한 뒤 heap·payload 주소 오름차순, 주소별 owner/group, end = start + data_size, 중복·누락 없음, Total 합계를 확인했다. free 블록과 제거된 LARGE heap은 출력·합계에서 제외되며, 최초 빈 상태와 전체 free 후에도 Total 0이다.
+- 페이지 크기: sysconf(_SC_PAGESIZE) 기준으로 get_page_size 및 일반·확장 출력이 일치한다. TINY 4페이지·SMALL 32페이지, mapping 시작·크기의 페이지 정렬, LARGE의 정렬 payload + heap/block metadata를 포함한 페이지 반올림, overflow 거절을 확인했다. 4096을 코드에 고정하지 않는다.
+- 출력은 물리적 block 연결 순서와 주소별 heap 선택을 사용한다. 해당 회귀 범위에서 구현 결함을 발견하지 않아 동작 코드는 변경하지 않았다.
+- 테스트 구현은 `tests/m1_cases.c`, 헤더는 함수 선언만 유지한다. 출력 캡처는 임시 파일을 사용해 pipe 용량 때문에 조회가 멈추는 상황을 피한다.
+- 보너스 show_alloc_mem_ex는 이번에 페이지 출력만 확인했다. hex dump 정확성·동시성·M2–M4의 완료를 의미하지 않는다.

@@ -20,9 +20,9 @@
 # define HEAP_SHIFT(start) ((void *)start + sizeof(t_heap))
 # define BLOCK_SHIFT(start) ((void *)start + sizeof(t_block))
 
-# define TINY_HEAP_ALLOCATION_SIZE ((size_t)4 * (size_t)getpagesize())
+# define TINY_HEAP_ALLOCATION_SIZE ((size_t)4 * get_page_size())
 # define TINY_BLOCK_SIZE (TINY_HEAP_ALLOCATION_SIZE / 128)
-# define SMALL_HEAP_ALLOCATION_SIZE ((size_t)32 * (size_t)getpagesize())
+# define SMALL_HEAP_ALLOCATION_SIZE ((size_t)32 * get_page_size())
 # define SMALL_BLOCK_SIZE (SMALL_HEAP_ALLOCATION_SIZE / 128)
 
 #endif
