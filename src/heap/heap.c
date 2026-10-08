@@ -67,7 +67,7 @@ t_heap    *create_new_heap(const t_heap_group group, const size_t size)
     heap = (t_heap *)mmap(NULL, heap_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (heap == MAP_FAILED)
         return (NULL);
-    ft_memset(heap, 0, heap_size);
+    ft_memset(heap, 0, sizeof(*heap));
     heap->group = group;
     heap->total_size = heap_size;
     heap->free_size = heap_size - sizeof(t_heap);
