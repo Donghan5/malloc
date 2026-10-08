@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   bonus_edge_cases.h                                 :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/10/08 21:35:37 by donghank          #+#    #+#             */
+/*   Updated: 2026/10/08 21:35:37 by donghank         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 int edge_m2_split_boundary(void);
 int edge_m2_shrink_with_live_neighbors(void);
 int edge_m2_reuse_after_merge(void);

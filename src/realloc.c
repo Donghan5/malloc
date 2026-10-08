@@ -26,7 +26,12 @@ void *start_realloc(void *ptr, size_t size)
 	size_t			original_size;
 
 	if (!ptr)
-		return (start_malloc(size));
+	{
+	    new_ptr = start_malloc(size);
+		if (new_ptr && g_data.scribble)
+		    ft_memset(new_ptr, 0xaa, size);
+		return (new_ptr);
+	}
 	if (size == 0)
 	{
 		start_free(ptr);

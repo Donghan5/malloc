@@ -55,7 +55,7 @@ clean:
 	@rm -rf $(PATH_OBJ)
 	@echo "Clean done"
 
-fclean: clean
+fclean: clean test-fclean
 	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC) $(TEST_BINS)
 	@echo "Fclean done"
 
@@ -90,6 +90,11 @@ scribble_mode: all $(TEST_EXEC)
 # Structured test sources; generated executables live only in test/bin.
 TEST_ROOT = test
 TEST_BIN = $(TEST_ROOT)/bin
+TEST_OBJ = $(TEST_ROOT)/obj
+CORRECTION_SOURCES = $(sort $(wildcard $(TEST_ROOT)/correction/test*.c))
+CORRECTION_OBJECTS = $(patsubst $(TEST_ROOT)/%.c,$(TEST_OBJ)/%.o,$(CORRECTION_SOURCES))
+CORRECTION_BINS = $(patsubst $(TEST_ROOT)/%.c,$(TEST_BIN)/%,$(CORRECTION_SOURCES))
+CORRECTION_CFLAGS = -std=gnu11 -Wall -Wextra -O0 -g -fno-builtin
 TEST_RUNNER = $(TEST_BIN)/test_runner
 EDGE_TEST_EXEC = $(TEST_BIN)/edge_cases
 M1_TEST_EXEC = $(TEST_BIN)/m1_cases
@@ -107,6 +112,32 @@ EDGE_SOURCE = $(TEST_ROOT)/edge_cases/edge_cases.c
 EDGE_BONUS = $(TEST_ROOT)/edge_cases/bonus_edge_cases.c
 
 .PHONY: test test-edge test-m1 test-m2 test-m3 test-m4 test-m5 test-all test-build
+.PHONY: test-correction test-correction-build test-clean test-fclean
+
+test-correction: test-correction-build
+	@failed=0; for binary in $(CORRECTION_BINS); do \
+		echo "RUN $$binary"; \
+		if "./$$binary"; then echo "PASS $$binary"; \
+		else echo "FAIL $$binary"; failed=1; fi; \
+	done; exit $$failed
+
+test-correction-build: $(CORRECTION_BINS)
+
+test-clean:
+	@rm -rf $(TEST_OBJ)
+	@echo "Test clean done"
+
+test-fclean: test-clean
+	@rm -f $(TEST_BINS) $(CORRECTION_BINS) $(TEST_EXEC)
+	@echo "Test fclean done"
+
+$(TEST_OBJ)/correction/%.o: $(TEST_ROOT)/correction/%.c $(HEADERS) Makefile
+	@mkdir -p $(@D)
+	$(CC) $(CORRECTION_CFLAGS) -I$(PATH_INC) -c $< -o $@
+
+$(CORRECTION_BINS): $(TEST_BIN)/correction/%: $(TEST_OBJ)/correction/%.o $(NAME)
+	@mkdir -p $(@D)
+	$(CC) $< ./$(NAME) -pthread -Wl,-rpath,'$$ORIGIN/../../..' -o $@
 
 test test-all: test-build
 	./$(ALL_TEST_EXEC)

@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   m3_cases.h                                         :+:      :+:    :+:   */
+/*   test5.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -10,8 +10,15 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-int m3_environment(void);
-int m3_debug_logs(void);
-int m3_scribble(void);
-int m3_hex_rows(void);
-int m3_extended_output(void);
+#include "../../inc/malloc.h"
+
+int	main(void)
+{
+	malloc(1024);
+	malloc(1024 * 32);
+	malloc(1024 * 1024);
+	malloc(1024 * 1024 * 16);
+	malloc(1024 * 1024 * 128);
+	show_alloc_mem();
+	return (0);
+}

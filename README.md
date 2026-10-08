@@ -123,6 +123,15 @@ make valgrind       # valgrind with soname synonym
 | `MALLOC_DEBUG=1`  | Print each `malloc`, `free`, `realloc` call with address and size |
 | `MALLOC_SCRIBBLE=1` | Fill allocated memory with `0xaa`; fill freed LARGE blocks with `0xdd` |
 
+### Bonus: usage of `getenv()`
+
+- **Purpose:** Read `MALLOC_DEBUG` and `MALLOC_SCRIBBLE` to implement the bonus debug environment variables.
+- **Value interpretation:** Only the exact string `"1"` enables a flag. Every other value, including an unset variable, `"0"`, an empty string, and `"10"`, disables it.
+- **Initialization:** The first execution of `init_debug_flags()` reads both variables and caches their flags. Later environment changes do not update either flag.
+- **Basis for use:** The project PDF allows additional functions for bonus implementations and requires explaining their use during evaluation. `getenv()` provides the environment-variable lookup needed for this debug bonus.
+
+Documenting a function does not by itself make arbitrary functions permissible. The justification here connects `getenv()` specifically to the environment-variable debug bonus it implements.
+
 ---
 
 ## Diagnostics

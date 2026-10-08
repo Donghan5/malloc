@@ -151,11 +151,13 @@ void	init_debug_flags(void)
 {
 	char	*val;
 
-	if (!g_data.initialized)
-	{
-		g_data.debug = (getenv("MALLOC_DEBUG") != NULL);
-		g_data.initialized = 1;
-	}
+	if (g_data.initialized)
+	    return ;
+	val = getenv("MALLOC_DEBUG");
+	g_data.debug = (val && val[0] == '1' && val[1] == '\0');
+	
 	val = getenv("MALLOC_SCRIBBLE");
-	g_data.scribble = (val && val[0] != '0');
+	g_data.scribble = (val && val[0] == '1' && val[1] == '\0');
+
+	g_data.initialized = 1;
 }

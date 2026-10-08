@@ -1,29 +1,45 @@
-# malloc 테스트
+# malloc Tests
 
-프로젝트 루트에서 실행합니다. C 컴파일러, Linux/POSIX 프로세스 API,
-pthread, `make`, `cp`가 필요합니다.
+Run commands from the project root. A C compiler, Linux/POSIX process APIs,
+pthread, `make`, and `cp` are required.
 
-## 실행 명령
+## Commands
 
-| 명령 | 범위 |
+| Command | Scope |
 | --- | --- |
-| `make test` 또는 `make test-all` | M1–M5, 전체 경계 테스트, 보너스 활성화 필수 회귀, M1 빌드·소스 검사 |
-| `make test-edge` | 필수 경계 16개 + M2–M5 경계 12개 |
-| `make test-m1` | 필수 회귀 16개 + M1 9개 + 빌드·소스 검사 5개 |
-| `make test-m2` | 병합·축소·heap 회수 9개 |
-| `make test-m3` | 환경변수·로그·scribble·hex dump 5개 |
-| `make test-m4` | 동시성·포인터 전달·오류 주입 3개 |
-| `make test-m5` | heap 재사용·보너스 활성화 회귀 2개 |
-| `make test-build` | 전체 테스트 실행 파일 빌드 |
+| `make test` or `make test-all` | M1–M5, all edge cases, mandatory regression tests with bonuses enabled, and M1 build/source checks |
+| `make test-edge` | 16 mandatory edge cases + 12 M2–M5 edge cases |
+| `make test-m1` | 16 mandatory regression cases + 9 M1 cases + 5 build/source checks |
+| `make test-m2` | 9 coalescing, shrinking, and heap reclamation cases |
+| `make test-m3` | 5 environment variable, logging, scribble, and hex dump cases |
+| `make test-m4` | 3 concurrency, pointer transfer, and fault injection cases |
+| `make test-m5` | 2 heap reuse and regression cases with bonuses enabled |
+| `make test-build` | Build all test executables |
+| `make test-correction` | Build and run correction test0–test5 |
+| `make test-correction-build` | Build correction executables only |
+| `make test-clean` | Remove test object files; keep executables |
+| `make test-fclean` | Remove test object files and executables, including test_malloc |
 
-`test-m5`는 M5 개별 테스트입니다. 제출용 전체 검증은 `test-all`을 사용합니다.
-개별 사례는 `./test/bin/edge_cases 16`처럼 0부터 시작하는 인덱스로 실행합니다.
-인자 없이 실행 파일을 호출하면 사례 개수를 출력합니다.
+`test-m5` runs only the M5 tests. Use `test-all` for full validation before submission.
+Run individual cases using a zero-based index, for example `./test/bin/edge_cases 16`.
+Calling an executable without arguments prints its case count.
 
-## 구조
+The correction tests link against the actual shared library. Their executables are
+created in `test/bin/correction/`, and their object files in `test/obj/correction/`.
+Run individual tests with commands such as `./test/bin/correction/test3`. The
+executables locate the project library through their rpath, so no separate
+LD_PRELOAD configuration is required. `test-correction` reports PASS/FAIL based on
+each program's exit code and continues running the remaining programs after a
+failure. The supplied programs are intended for inspecting output and behavior;
+they do not automatically validate output contents or memory usage. They are not
+included in `test-all`. These builds omit Werror to allow unused-variable warnings
+in the original correction sources. The existing structured tests retain Werror.
+
+## Structure
 
 ```text
 test/
+├── correction/       test0.c … test5.c
 ├── milestones/       m1_cases.c/.h … m5_cases.c/.h
 ├── all_cases/        all_cases.c/.h
 ├── helpers/          test_helpers.c/.h, bonus_helpers.c/.h
@@ -32,95 +48,112 @@ test/
 ├── run_tests.c
 ├── codex.md
 ├── README.md
-└── bin/              생성된 실행 파일 (Git 제외)
+├── obj/              correction object files (excluded from Git)
+└── bin/              generated executables (excluded from Git)
 ```
 
-헤더에는 함수 선언만 둡니다. 타입·시스템 선언은 C 파일이 `inc/malloc.h`를
-통해 가져옵니다. 새 테스트와 UI는 프로젝트 헤더와 `write` 기반 출력을
-사용합니다. 기존 `run_tests.c`는 M1의 임시 빌드·소스 검사를 위해 사용하던
-시스템 헤더를 유지합니다.
+Headers contain only function declarations. C files obtain type and system
+declarations through `inc/malloc.h`. New tests and the UI use the project header
+and `write`-based output. The existing `run_tests.c` retains the system headers
+used for M1's temporary build and source checks.
 
-## 결과와 격리
+## Results and Isolation
 
-각 runtime 사례는 별도 프로세스에서 실행합니다. 성공은 녹색 `PASS`, 실패는
-적색 `FAIL`로 표시합니다. assertion 실패, crash, timeout 모두 전체 실패로
-전파되며, 남은 사례는 계속 실행합니다. 실행 파일은 실패 시 1, `make`는
-실패 시 비정상 종료합니다. core dump는 비활성화합니다.
+Each runtime case runs in a separate process. Success is shown as a green `PASS`,
+and failure as a red `FAIL`. Assertion failures, crashes, and timeouts all cause
+the overall run to fail, while the remaining cases continue running. Executables
+return 1 on failure, and `make` exits with a nonzero status on failure. Core dumps
+are disabled.
 
-runtime 사례의 alarm은 10초, 통합 실행기의 exec alarm은 20초입니다.
-M1 전용 runner는 runtime 외부 제한 15초, 개별 빌드 제한 60초를 사용합니다.
-출력은 삭제된 임시 파일에 캡처합니다. 통합 화면은 성공 시 첫 줄, 실패 시
-최대 4095바이트를 표시합니다. M1 빌드는 임시 프로젝트 복사본에서 실행합니다.
+Runtime cases use a 10-second alarm, and the integrated runner uses a 20-second
+exec alarm. The dedicated M1 runner uses a 15-second external runtime limit and
+a 60-second limit for each build. Output is captured in an unlinked temporary
+file. The integrated display shows the first line on success and up to 4095 bytes
+on failure. M1 builds run in temporary copies of the project.
 
-allocator 함수를 `edge_malloc`, `edge_free`, `edge_realloc`로 바꾸어 링크하므로
-libc의 내부 할당이 테스트 대상 heap에 섞이지 않습니다. LD_PRELOAD와 실제
-시스템 프로그램 연동은 별도 검증이 필요합니다. 통합 실행기는 각 실행 파일의
-사례 개수를 읽으므로, 사례를 추가해도 고정된 개수를 수정할 필요가 없습니다.
+Allocator functions are renamed to `edge_malloc`, `edge_free`, and `edge_realloc`
+when linked, so libc's internal allocations do not enter the heap under test.
+LD_PRELOAD and integration with actual system programs require separate
+validation. The integrated runner reads each executable's case count, so adding
+cases does not require updating a hardcoded count.
 
-## 경계 사례
+## Edge Cases
 
-기존 필수 16개는 NULL/0, 정렬·크기 경계, overflow, realloc 보존·실패,
-LARGE 축소 수명, 최소 분할, 단편화·다중 heap, heap unlink, 조회 출력을
-검증합니다. malloc(0)과 realloc(ptr,0)은 이 프로젝트의 NULL 정책을 사용합니다.
+The original 16 mandatory cases validate NULL/0 handling, alignment and size
+boundaries, overflow, realloc preservation and failure, LARGE allocation lifetime
+after shrinking, minimum splitting, fragmentation and multiple heaps, heap
+unlinking, and allocation inspection output. malloc(0) and realloc(ptr,0) follow
+this project's NULL policy.
 
-추가한 M2–M5 12개는 다음을 검증합니다.
+The 12 additional M2–M5 cases validate the following:
 
-| 영역 | 추가 사례 |
+| Area | Additional cases |
 | --- | --- |
-| M2 | 정확한 최소 분할 나머지, 살아 있는 이웃 사이 축소, 병합 공간 재사용 |
-| M3 | 실행 중 scribble 변경 및 빈 값, realloc(NULL,0/1), dump에서 해제된 hole 제외 |
-| M4 | 0·NULL 경로 후 unlock, 8개 worker의 첫 할당, overflow 실패 후 unlock·재사용 |
-| M5 | SMALL heap 100회 재사용, LARGE 중간·양쪽 heap 회수, mapping 실패 후 원본 보존·복구 |
+| M2 | Exact minimum split remainder, shrinking between live neighbors, reuse of coalesced space |
+| M3 | Scribble changes at runtime and empty values, realloc(NULL,0/1), exclusion of freed holes from dumps |
+| M4 | Unlocking after 0/NULL paths, first allocation by 8 workers, unlocking and reuse after overflow failure |
+| M5 | 100 SMALL heap reuse cycles, reclamation of middle and both outer LARGE heaps, original allocation preservation and recovery after mapping failure |
 
-분할 경계는 별도 mmap 영역에 구성한 metadata를 검사합니다. free한 payload는
-읽지 않습니다. M4 첫 할당은 condition variable로 worker 시작을 맞추며,
-pthread_create가 부분 실패해도 생성한 worker를 모두 해제·join합니다.
-RLIMIT_AS 실패 주입은 해당 사례 프로세스에만 적용하고 원래 제한을 복원한 뒤
-재할당 성공을 검증합니다. 임의 포인터 free와 double free는 포함하지 않습니다.
+Split boundaries are checked using metadata constructed in a separate mmap region.
+Freed payloads are not read. M4's first-allocation test synchronizes worker starts
+with a condition variable; even if pthread_create partially fails, all created
+workers are released and joined. RLIMIT_AS fault injection applies only to the
+case's process. The original limit is restored before verifying that allocation
+succeeds again. Freeing arbitrary pointers and double frees are not covered.
 
-## 마일스톤 검증 범위
+## Milestone Coverage
 
-M1은 최대 블록 100개, group 격리·단편화, memmove, 주소 순서·payload 경계,
-Total·페이지 크기·mapping geometry와 빌드 계약을 확인합니다. 소스 검사는
-알려진 `d - s` 표현과 Linux `getpagesize()` 사용에 한정됩니다.
+M1 checks up to 100 blocks, group isolation and fragmentation, memmove, address
+ordering and payload boundaries, Total, page size, mapping geometry, and build
+contracts. Source checks are limited to the known `d - s` expression and Linux
+`getpagesize()` usage.
 
-M2는 128/64/64 축소 회귀, 양방향·양쪽 병합, metadata 공간 복구, 여러 heap
-회수를 확인합니다. 공유 metadata 검사는 연결, 물리적 범위, count, free_size,
-인접 free 블록을 검사합니다. 마지막 빈 TINY/SMALL heap 보존을 허용합니다.
+M2 checks the 128/64/64 shrinking regression, coalescing in both directions and
+with both neighbors, recovery of metadata space, and reclamation of multiple
+heaps. Shared metadata checks validate links, physical bounds, count, free_size,
+and adjacent free blocks. Retaining the last empty TINY/SMALL heap is allowed.
 
-M3은 현재 환경변수 해석을 기준으로 합니다. MALLOC_DEBUG는 값과 무관하게
-존재하면 활성화되고 초기화 후 캐시됩니다. MALLOC_SCRIBBLE은 호출마다 갱신되며,
-존재하고 첫 문자가 `0`이 아니면 활성화됩니다. 빈 값도 활성화됩니다.
-realloc(NULL,n)에는 malloc과 동일한 요청 바이트 `0xaa` 초기화를 요구합니다.
-hex dump는 16바이트 행, 부분 행, 빈 출력, 알려진 live 패턴과 Total을 검사합니다.
-모든 로그 인자의 일치, 확장 출력의 전체 주소 순서, realloc 확장 tail 및
-munmap 전 `0xdd` 계측은 미검증입니다.
+M3 follows the current environment variable interpretation. MALLOC_DEBUG is
+enabled whenever it exists, regardless of its value, and is cached after
+initialization. MALLOC_SCRIBBLE is refreshed on every call and is enabled when
+it exists and its first character is not `0`. An empty value also enables it.
+realloc(NULL,n) must initialize the requested bytes to `0xaa`, just like malloc.
+Hex dump checks cover 16-byte rows, partial rows, empty output, known live patterns,
+and Total. Matching every log argument, full address ordering in extended output,
+the tail added by realloc growth, and `0xdd` instrumentation before munmap remain
+unverified.
 
-M4는 2·4·8 worker에서 각각 120회 할당·확장·축소·해제를 수행합니다.
-별도 mutex로 payload 쓰기와 dump 읽기를 동기화하고, 독립 payload의 public
-allocator 호출은 동시에 실행합니다. join 후 metadata도 검사합니다.
-다른 스레드에 포인터 소유권을 전달하며, 오류 주입 검사는 worker 4개 모두의
-손상이 최종 실패로 전달되었을 때만 통과합니다.
+M4 performs 120 allocation, growth, shrink, and free cycles with each of 2, 4,
+and 8 workers. A separate mutex synchronizes payload writes and dump reads,
+while public allocator calls for independent payloads run concurrently. Metadata
+is also checked after join. Pointer ownership is transferred to another thread.
+The fault injection check passes only when corruption in all 4 workers propagates
+to the final failure result.
 
-M5는 heap 재사용과 debug/scribble 활성화 성장·overflow 회귀를 검사합니다.
-통합 실행은 필수 16개도 debug/scribble 활성화 상태에서 반복합니다.
-heap 재사용은 metadata로 확인하며 실제 mmap/munmap syscall 수를 계측하지 않습니다.
-다른 OS는 미검증입니다.
+M5 checks heap reuse and growth/overflow regressions with debug and scribble
+enabled. The integrated run also repeats the 16 mandatory cases with debug and
+scribble enabled. Heap reuse is verified through metadata; actual mmap/munmap
+system call counts are not measured. Other operating systems remain unverified.
 
-## 로컬 결과
+## Local Results
 
-2026-10-08 Linux 실행 결과:
+Linux run results from 2026-10-08:
 
-- M1: 30/30 통과.
-- M2: 5/9 통과. 축소 후 병합 관련 기존 실패 4개.
-- M3: 4/5 통과. realloc(NULL,n)의 scribble 누락.
-- M4: 2/3 통과. realloc 축소 후 인접 free 블록 발견.
-- M5: 2/2 통과.
-- 경계 테스트: 27/28 통과. realloc(NULL,1)의 scribble 누락.
-- 전체 통합: 82/89 통과, 실행 파일 종료 코드 1.
+- M1: 30/30 passed.
+- M2: 9/9 passed, 0 failures, `make test-m2` exit code 0. Shrinking, consecutive coalescing, coalescing in both directions, metadata, reuse, and heap reclamation checks passed.
+- M3: 5/5 passed, 0 failures, `make test-m3` exit code 0. Value interpretation and caching for both variables, logging, scribble, and hex dump checks passed. The existing check for missing scribble in realloc(NULL,n) also passed.
+- M4: 2/3 passed. Adjacent free blocks were found after realloc shrinking.
+- M5: 2/2 passed.
+- Edge cases: 27/28 passed. Scribble was missing in realloc(NULL,1).
+- Full integrated run: 82/89 passed, executable exit code 1.
 
-89개 항목에는 M1 runtime 25개, M2–M5 runtime 19개, 경계 28개,
-보너스 활성화 필수 16개와 기존 M1 전체 runner를 실행하는 요약 항목 1개가
-포함됩니다. 마지막 항목은 내부 검사 30개를 하나로 집계하므로 독립적인
-계약 89개를 뜻하지 않습니다. 실패는 실제 실패로 표시하며, 마일스톤 완료나
-제출 요구사항 전체 충족을 의미하지 않습니다.
+The M2 and M3 results come from individual reruns on 2026-10-08. The other entries
+and the full integrated result are records from an earlier run; they have not
+been recalculated to reflect the passing M2 and M3 results.
+
+The 89 entries include 25 M1 runtime cases, 19 M2–M5 runtime cases, 28 edge cases,
+16 mandatory cases with bonuses enabled, and 1 summary entry that runs the
+existing full M1 runner. The last entry counts 30 internal checks as one entry,
+so this does not represent 89 independent contracts. Failures are reported as
+actual failures. These results do not imply milestone completion or satisfaction
+of all submission requirements.

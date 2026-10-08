@@ -1,32 +1,54 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   m3_cases.c                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/10/08 21:35:37 by donghank          #+#    #+#             */
+/*   Updated: 2026/10/08 21:35:37 by donghank         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "malloc.h"
 #include "test_helpers.h"
 #include "bonus_helpers.h"
 #include "m3_cases.h"
 #define CHECK(x) do { if (!(x)) { ft_putstr_fd("Assertion: " #x "\n", 2); return 1; } } while (0)
 
-/* Contract follows init_debug_flags: debug is presence-based and cached;
- * scribble is refreshed per operation and enabled unless first byte is '0'. */
+/* Both flags are enabled only by "1" and cached after initialization. */
 int m3_environment(void)
 {
-    const char *values[] = {NULL, "0", "1", ""};
-    size_t i;
+    const char *values[] = {NULL, "0", "", "10", "1"};
+    const int enabled[] = {0, 0, 0, 0, 1};
+    size_t i, j;
     int saved, fd;
     char output[4096];
     fd = capture_begin(&saved); CHECK(fd >= 0);
-    for (i = 0; i < 4; ++i)
+    for (i = 0; i < sizeof(values) / sizeof(values[0]); ++i)
     {
-        if (values[i]) CHECK(setenv("MALLOC_DEBUG", values[i], 1) == 0);
-        else CHECK(unsetenv("MALLOC_DEBUG") == 0);
-        g_data.initialized = 0;
-        free(NULL);
-        CHECK(g_data.debug == (values[i] != NULL));
-        CHECK(unsetenv("MALLOC_DEBUG") == 0);
-        free(NULL);
-        CHECK(g_data.debug == (values[i] != NULL));
-        if (values[i]) CHECK(setenv("MALLOC_SCRIBBLE", values[i], 1) == 0);
-        else CHECK(unsetenv("MALLOC_SCRIBBLE") == 0);
-        free(NULL);
-        CHECK(g_data.scribble == (values[i] && values[i][0] != '0'));
+        for (j = 0; j < sizeof(values) / sizeof(values[0]); ++j)
+        {
+            if (values[i]) CHECK(setenv("MALLOC_DEBUG", values[i], 1) == 0);
+            else CHECK(unsetenv("MALLOC_DEBUG") == 0);
+            if (values[j]) CHECK(setenv("MALLOC_SCRIBBLE", values[j], 1) == 0);
+            else CHECK(unsetenv("MALLOC_SCRIBBLE") == 0);
+            g_data.initialized = 0;
+            free(NULL);
+            CHECK(g_data.initialized == 1);
+            CHECK(g_data.debug == enabled[i]);
+            CHECK(g_data.scribble == enabled[j]);
+            CHECK(setenv("MALLOC_DEBUG", enabled[i] ? "0" : "1", 1) == 0);
+            CHECK(setenv("MALLOC_SCRIBBLE", enabled[j] ? "0" : "1", 1) == 0);
+            free(NULL);
+            CHECK(g_data.debug == enabled[i]);
+            CHECK(g_data.scribble == enabled[j]);
+            CHECK(unsetenv("MALLOC_DEBUG") == 0);
+            CHECK(unsetenv("MALLOC_SCRIBBLE") == 0);
+            free(NULL);
+            CHECK(g_data.debug == enabled[i]);
+            CHECK(g_data.scribble == enabled[j]);
+        }
     }
     CHECK(capture_end(fd, saved, output, sizeof(output)) == 0);
     return 0;
@@ -39,6 +61,7 @@ int m3_debug_logs(void)
     unsigned char *p, *q;
     int fd, saved;
     CHECK(setenv("MALLOC_DEBUG", "1", 1) == 0);
+    g_data.initialized = 0;
     fd = capture_begin(&saved); CHECK(fd >= 0);
     p = malloc(32);
     q = realloc(p, 64);
@@ -59,13 +82,14 @@ int m3_scribble(void)
 {
     unsigned char *p, *q;
     CHECK(setenv("MALLOC_SCRIBBLE", "1", 1) == 0);
+    g_data.initialized = 0;
     p = malloc(37); CHECK(p && pattern(p, 37, 0xaa));
     ft_memset(p, 0x12, 37);
     q = realloc(p, SMALL_BLOCK_SIZE + 64);
     CHECK(q && pattern(q, 37, 0x12));
     free(q);
     /* realloc(NULL,n) is an allocation and must honor allocation scribble. */
-    p = realloc(NULL, 37); CHECK(p && pattern(p, 37, 0xaa));
+    p = realloc(NULL, 37); CHECK(p); CHECK(pattern(p, 37, 0xaa));
     free(p);
     return 0;
 }

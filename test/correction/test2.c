@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   m3_cases.h                                         :+:      :+:    :+:   */
+/*   test2.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
@@ -10,8 +10,20 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-int m3_environment(void);
-int m3_debug_logs(void);
-int m3_scribble(void);
-int m3_hex_rows(void);
-int m3_extended_output(void);
+#include "../../inc/malloc.h"
+
+int	main(void)
+{
+	int		i;
+	char	*addr;
+
+	i = 0;
+	while (i < 1024)
+	{
+		addr = (char*)malloc(1024);
+		addr[0] = 42;
+		free(addr);
+		i++;
+	}
+	return (0);
+}

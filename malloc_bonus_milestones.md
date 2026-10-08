@@ -5,8 +5,8 @@
 - 리뷰 기준: `Donghan5/malloc`, `main@5b89b15d8b71c742b98e4775bab180e579edb5c6`
 - 저장소: https://github.com/Donghan5/malloc/tree/5b89b15d8b71c742b98e4775bab180e579edb5c6
 - 검증 환경: 이전 리뷰에서 Linux x86_64, 페이지 크기 4096으로 빌드·실행
-- 갱신일: 2026-10-07 (Europe/Paris)
-- 최신 검증: HEAD `3c106d5910d1124fe0ec1103eaeb3fad8b1e8bcd` + 미커밋 수정 사항에서 `make test-m1`, 종료 코드 0, **30/30 통과** (실패 0).
+- 갱신일: 2026-10-08 (Europe/Paris)
+- 최신 검증: HEAD `5fb952df79d9aef484546687e1449b9cba122462` + 미커밋 수정 사항에서 `make test-m4` **3/3 통과**, `make test-m5` **2/2 통과**. 두 명령 모두 종료 코드 **0**, 실패 **0**. 같은 날 M2 **9/9**, M3 **5/5**도 통과했으며, M1의 이전 검증은 2026-10-07 기록을 참조한다.
 - 최신 실행 환경: Fedora Linux 44, x86_64, 페이지 크기 4096. 학교 환경도 Fedora이므로 Linux/Fedora를 M1 대상 플랫폼으로 삼는다. 필수 16개와 M1 실행 9개, 소스 점검 2개, 빌드 점검 3개를 포함한다.
 - 이 문서는 수정 계획과 검증 기록이다. 필수 회귀 테스트 통과가 전체 필수 요구사항이나 보너스 완료를 의미하지는 않는다.
 - 현재 판정: **INCOMPLETE**
@@ -21,10 +21,10 @@ PDF는 첫 보너스로 pthread 기반 thread safety를 제시하고, 추가 기
 
 | 항목 | 현재 확인된 상태 | 목표 |
 | --- | --- | --- |
-| pthread 기반 thread safety | 공개 allocator·조회 함수에 mutex 존재. 기존 4스레드 테스트 실행 완료 | 상태 변경·조회 경로의 잠금 계약 확인 및 실패를 검출하는 동시성 테스트 |
-| 디버그 환경변수 | MALLOC_DEBUG 로그, MALLOC_SCRIBBLE의 할당 시 0xaa 확인 | 변수 해석·적용 범위를 명시하고 malloc/free/realloc 경로별 검증 |
+| pthread 기반 thread safety | M4 3/3 통과: 2/4/8스레드 재할당·동기화 조회, 소유권 전달·손상 검출 확인 | 상태 변경·조회 경로의 잠금 계약 확인 및 실패를 검출하는 동시성 테스트 |
+| 디버그 환경변수 | M3 5/5 통과: 두 변수의 값 해석·캐싱, 로그, malloc/realloc(NULL,n)의 0xaa 확인 | 변수 해석·적용 범위를 명시하고 malloc/free/realloc 경로별 검증 |
 | show_alloc_mem_ex() | hex dump 출력 확인 | 일반 조회의 정확성을 공유하고 알려진 바이트 패턴으로 검증 |
-| 해제 공간 defragmentation | 일반 양방향 병합 통과. realloc 축소 후 병합 불완전 | 인접 free 블록이 남지 않고 병합 공간을 재사용 |
+| 해제 공간 defragmentation | M2 9/9 통과: 축소·연속·양방향 병합, 메타데이터·재사용·빈 heap 회수 확인 | 인접 free 블록이 남지 않고 병합 공간을 재사용 |
 | 필수 구현 | 기존 LARGE 수명 오류·group 격리 회귀 통과, 필수 테스트 16/16 통과 | 유효한 호출의 데이터·수명·분류·출력 계약 충족 |
 
 ## 2. 확인된 결함과 수정 상태
@@ -38,7 +38,7 @@ PDF는 첫 보너스로 pthread 기반 thread safety를 제시하고, 추가 기
 | --- | --- | --- | --- | --- |
 | 수정 확인 (기존 CRITICAL) | LARGE를 축소한 뒤 그 잔여 공간에 다른 할당이 들어가며, 첫 할당 free가 두 번째 할당까지 해제 | 이전 SIGSEGV 재현 → 최신 양쪽 free 순서 회귀 통과 | src/realloc.c, src/block/block.c, src/free.c, src/heap/heap.c | LARGE 축소 시 분할하지 않고 기존 mapping 유지. 별도 할당 수명 보존 확인 |
 | 수정 확인 (기존 HIGH) | 요청 크기와 heap 종류가 일치하지 않음 | 이전 SMALL 오배치 → 최신 size class isolation 통과 | find_free_block(), start_malloc() | find_free_block()에서 요청 group과 다른 heap을 건너뛰도록 적용 |
-| HIGH | realloc 축소 이후 인접 free 블록이 남음 | 실행 확인 | split_block(), start_realloc(), coalesce_block() | 축소 잔여 블록 병합 및 block_count/free_size 유지 |
+| 수정 확인 (기존 HIGH) | realloc 축소 이후 인접 free 블록이 남음 | 이전 실행 실패 → 최신 M2 축소·연속 병합 및 재사용 회귀 통과 | split_block(), start_realloc(), coalesce_block() | 축소 잔여 블록 병합 및 block_count/free_size 유지 |
 | 수정 확인 (기존 HIGH) | show_alloc_mem()이 주소 오름차순을 보장하지 않음 | 강제로 역순 연결한 LARGE heap 출력·Total 회귀 통과 | src/tools/show_alloc_mem.c | next_heap_by_address()로 출력 순서 선택. 혼합 group·block 순서, 해제 블록 제외, 빈 상태·Total 회귀 추가 통과 |
 | 수정 확인 (기존 HIGH) | 서로 다른 할당의 포인터 차를 계산함 | d - s 소스 점검 및 memmove 기능 회귀 통과 | src/tools/tools.c | uintptr_t 정수 연산으로 변경. 소스 패턴 통과는 C 이식성 전체의 증명이 아님 |
 | 수정 확인 (기존 MEDIUM) | 총 free_size만으로 heap을 선택한 뒤 첫 블록만 검사하는 fallback 경로 | 같은 group 내 연속 공간 부족 회귀 통과 | get_available_heap(), start_malloc() | start_malloc()에서 적합한 free 블록이 없으면 새 heap 생성. 기존 fallback 경로 우회 |
@@ -109,11 +109,13 @@ free(b);
 - [x] 대상 플랫폼 Fedora/Linux에서 페이지 크기를 sysconf(_SC_PAGESIZE)로 취득하고 출력한다. — get_page_size(), 일반·확장 출력, TINY/SMALL zone 배수 및 LARGE metadata 포함 페이지 반올림·overflow 회귀 통과. 다른 OS는 이번 학교 환경 검증 범위 밖이다.
 - [x] HOSTTYPE 미설정 시 fallback, 라이브러리 이름, symlink, 헤더 변경 시 rebuild를 검증한다.
 - [x] 변경 없는 두 번째 make에서 불필요한 컴파일·링크가 없다.
-- [ ] 추가 보너스 함수 getenv 등의 사용은 방어 가능한 이유를 문서화한다.
+- [x] 추가 보너스 함수 getenv 등의 사용은 방어 가능한 이유를 문서화한다.
 
 **완료 조건:** 모든 유효한 경계 입력에서 데이터 보존·정렬·분류·출력 검증을 통과하고, 실패 경로에서 allocator 상태를 잃지 않는다.
 
 ### M2. 해제 공간 defragmentation 완료
+
+**상태:** 완료 — 2026-10-08 `make test-m2`에서 9/9 통과, 실패 0, 종료 코드 0. 현재 작업 트리의 아래 완료 조건을 검증했다.
 
 **범위:** `split_block()`, `coalesce_block()`, `start_free()`, `start_realloc()`.
 
@@ -123,11 +125,11 @@ free(b);
 3. prev/next 링크, block_count, free_size는 실제 상태와 일치한다.
 4. 살아 있는 payload는 이동하거나 손상시키지 않는다.
 
-- [ ] realloc 축소로 생성한 free 블록을 기존 다음 free 블록과 병합한다.
-- [ ] 연속 free 블록 여러 개가 있어도 병합이 중간에 멈추지 않는다.
-- [ ] 앞·뒤·양쪽 병합과 heap 첫/마지막 블록을 검증한다.
-- [ ] 병합 후 더 큰 요청이 같은 공간을 재사용함을 확인한다.
-- [ ] 완전히 빈 heap의 유지·회수 후에도 metadata와 group별 개수가 맞는다.
+- [x] realloc 축소로 생성한 free 블록을 기존 다음 free 블록과 병합한다.
+- [x] 연속 free 블록 여러 개가 있어도 병합이 중간에 멈추지 않는다.
+- [x] 앞·뒤·양쪽 병합과 heap 첫/마지막 블록을 검증한다.
+- [x] 병합 후 더 큰 요청이 같은 공간을 재사용함을 확인한다.
+- [x] 완전히 빈 heap의 유지·회수 후에도 metadata와 group별 개수가 맞는다.
 
 **필수 반례:**
 - a=malloc(128), b=malloc(64), c=malloc(64).
@@ -138,19 +140,21 @@ free(b);
 
 ### M3. 디버그 환경변수와 show_alloc_mem_ex 완료
 
+**상태:** 자동 검사 5/5 통과 (2026-10-08), 실패 0, 종료 코드 0. 해제 scribble·확장 영역 계약, 잠금·재진입 점검 및 README 문서화가 남아 전체 완료 판정은 보류한다.
+
 **범위:** `init_debug_flags()`, debug 출력, scribble 경로, hex dump, README.
 
 PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범위를 명시하고 그 범위대로 검증한다.
 
-- [ ] MALLOC_DEBUG의 미설정/0/1/빈 문자열 해석과 초기화 시점을 정한다.
-- [ ] MALLOC_SCRIBBLE의 값 해석과 실행 중 변경 지원 여부를 정한다.
-- [ ] malloc 성공/실패, free(NULL), realloc 성공/실패의 로그를 검증한다.
-- [ ] 할당 시 0xaa 적용 범위를 문서화하고 확인한다.
+- [x] MALLOC_DEBUG의 미설정/"0"/빈 문자열/"10"은 OFF, "1"만 ON으로 정한다. 최초 초기화 이후 값 변경·삭제는 반영하지 않는다.
+- [x] MALLOC_SCRIBBLE도 같은 값 해석과 최초 초기화 후 캐싱을 적용한다. 두 변수의 25개 값 조합에서 초기값·변경·삭제 후 고정을 검증했다.
+- [x] malloc 성공/실패, free(NULL), realloc 성공/실패의 로그를 검증한다. — 현재 테스트의 로그 패턴 검사 범위에서 통과.
+- [ ] 할당 시 0xaa 적용 범위를 README에 문서화한다. — malloc(37), realloc(NULL,37)의 요청 영역 0xaa 및 이동 재할당의 기존 데이터 보존 검사는 통과했다.
 - [ ] 해제 시 0xdd를 LARGE에만 적용할지 TINY/SMALL까지 적용할지 결정한다.
 - [ ] realloc(NULL,n) 및 확장된 새 영역의 scribble 계약을 명시한다.
 - [ ] 로그·dump 경로가 libc malloc을 재호출하거나 mutex를 중복 획득하지 않는지 확인한다.
-- [ ] show_alloc_mem_ex는 살아 있는 할당과 알려진 바이트 패턴을 정확히 출력한다.
-- [ ] 16바이트 행 경계, 마지막 불완전 행, 빈 상태를 검증한다.
+- [x] show_alloc_mem_ex는 살아 있는 할당과 알려진 바이트 패턴을 정확히 출력한다. — 단일 32바이트 할당의 0x12 출력·Total 및 payload 보존 확인. 혼합 heap·전체 주소 순서는 아래 별도 항목으로 남긴다.
+- [x] 16바이트 행 경계, 마지막 불완전 행, 빈 상태를 검증한다. — 17바이트 dump, 길이 0 dump, 빈 조회의 Total 0 통과.
 - [ ] 일반 출력과 확장 출력의 주소 순서·Total을 일치시킨다.
 
 **완료 조건:** 변수별 동작 표와 테스트 결과가 일치한다. hex dump가 구현되었으므로 allocation history를 추가로 만드는 것은 이 계획의 필수 범위가 아니다.
@@ -159,6 +163,8 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 
 ### M4. thread safety와 실패 검출 강화
 
+**상태:** 자동 검사 3/3 통과 (2026-10-08), 실패 0, 종료 코드 0. 공개 함수 전체의 잠금·unlock 경로 점검과 기존 main.c 판정 수정은 남아 있어 전체 완료 판정은 보류한다.
+
 **범위:** 모든 public entry point, start_* 내부 호출 계약, `main.c` 또는 별도 테스트 harness, Makefile.
 
 - [ ] malloc/free/realloc/show_alloc_mem/show_alloc_mem_ex의 공유 상태 접근이 같은 mutex로 보호된다.
@@ -166,12 +172,12 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 - [ ] 잠금 보유 중 다시 public allocator를 호출하는 경로가 없다.
 - [ ] 각 early return과 오류 경로의 unlock을 확인한다.
 - [ ] pthread 사용에 필요한 컴파일·링크 옵션을 플랫폼에 맞게 적용한다.
-- [ ] pthread_create 성공한 스레드만 join한다.
-- [ ] worker의 할당 실패·데이터 손상·검증 실패를 최종 결과에 반영한다.
-- [ ] malloc/free뿐 아니라 realloc 축소·확장과 조회 함수의 동시 실행을 검증한다.
-- [ ] 전달된 포인터는 동기화한 ownership handoff 후 다른 스레드에서 해제한다.
-- [ ] 같은 payload의 동시 쓰기와 free 같은 잘못된 사용자 동작을 allocator 실패로 혼동하지 않는다.
-- [ ] timeout으로 deadlock·hang를 실패 처리한다.
+- [x] M4 테스트는 pthread_create 성공한 스레드만 join한다. — 기존 main.c의 생성·join 처리 점검은 별도로 남긴다.
+- [x] M4 테스트는 worker의 할당 실패·데이터 손상·검증 실패를 최종 결과에 반영한다. — 4개 worker의 의도적 손상을 모두 검출했고 stress 실패를 확인했다. 기존 main.c 판정 수정은 별도로 남긴다.
+- [x] 2/4/8스레드에서 worker별 120회 malloc/free, realloc 확장·축소, 일반·확장 조회를 실행하고 데이터 보존·최종 allocator 상태를 검증한다. — malloc·payload 쓰기·조회는 별도 payload mutex로 직렬화하며, 독립 payload의 realloc/free는 동시 실행한다. 모든 공개 호출 조합의 동시성 검증을 의미하지 않는다.
+- [x] pthread_create로 완료된 쓰기를 전달한 뒤 부모가 소유권을 넘긴다. 다른 스레드에서 64바이트 패턴 확인·해제 및 최종 상태 검사를 통과했다.
+- [x] M4 테스트는 worker별 독립 payload와 조회 시 payload mutex를 사용하고, 소유권 전달 후 부모가 payload에 접근하지 않는다.
+- [x] M4 케이스의 alarm(10)과 상위 실행기의 timeout·signal 집계로 deadlock·hang를 실패 처리한다. — 이번 실행에서 timeout은 발생하지 않았다.
 
 **완료 조건:** 여러 스레드 수·반복 횟수에서 패턴 보존과 내부 상태 검사를 통과한다. 오류를 의도적으로 주입하면 테스트가 비정상 종료 코드로 실패한다.
 
@@ -179,13 +185,15 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 
 ### M5. 통합 회귀 및 제출 게이트
 
+**상태:** 개별 자동 검사 2/2 통과 (2026-10-08), 실패 0, 종료 코드 0. 전체 make test 실행, 호출 수 계측, README·필수 요구사항 전체·제출 게이트 검증은 남아 있어 M5는 일부 검증 상태로 유지한다.
+
 **범위:** 전체 프로젝트, README, 재현 테스트와 실행 기록.
 
 - [ ] M0–M4의 회귀 테스트를 한 번에 실행할 수 있다.
 - [ ] 테스트 전체 실패는 nonzero exit code로 전달된다.
-- [ ] 필수 테스트를 debug/scribble 미설정 상태와 활성화 상태에서 모두 실행한다.
+- [ ] 필수 테스트 전체를 debug/scribble 미설정 상태와 활성화 상태에서 모두 실행한다. — M5 활성화 회귀는 확장 시 64바이트 데이터 보존과 overflow 실패 시 원본 보존을 확인했으며, 필수 테스트 전체의 양 모드 재실행을 대체하지 않는다.
 - [ ] 지원하는 OS별 빌드·실행 결과를 따로 기록한다. 미실행 플랫폼은 미검증으로 표시한다.
-- [ ] 빈 TINY/SMALL heap을 유지하는 정책이 반복 malloc/free의 mmap/munmap 호출 수를 제한함을 계측한다.
+- [ ] 빈 TINY/SMALL heap을 유지하는 정책이 반복 malloc/free의 mmap/munmap 호출 수를 제한함을 계측한다. — M5에서 마지막 빈 TINY heap 유지 및 32바이트 할당·해제 100회의 동일 owner 재사용은 통과했다. SMALL 재사용과 실제 시스템 호출 수는 이번 테스트에서 계측하지 않는다.
 - [ ] 큰 할당의 해제, 모든 블록 해제, 여러 heap의 회수 순서를 검증한다.
 - [ ] README의 실제 동작·제한과 코드가 일치한다.
 - [ ] 최종 커밋 SHA, 환경, 명령, 종료 코드, 실패 수를 기록한다.
@@ -198,7 +206,7 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 
 ## 4. 검증 케이스 목록
 
-아래는 전체 검증 계획이다. `test/edge_cases/edge_cases.c`의 필수 16개 테스트는 통과했으며, M1의 Linux 빌드 계약도 추가 실행에서 통과했다. 보너스 및 다른 OS는 아직 미검증이다.
+아래는 전체 검증 계획이다. `test/edge_cases/edge_cases.c`의 필수 16개 테스트는 통과했으며, M1의 Linux 빌드 계약도 추가 실행에서 통과했다. M2 9개와 M3 5개도 2026-10-08 실행에서 통과했다. 나머지 보너스 검증 및 다른 OS는 아직 미검증이다.
 
 | 케이스 | 입력·순서 | 확인할 결과 |
 | --- | --- | --- |
@@ -212,7 +220,7 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 | heap 회수 | 같은 group 여러 heap, 역순·정순 해제 | 리스트·개수·유효 mapping 일치 |
 | 출력 정렬 | 여러 heap 생성 및 일부 회수 | 주소 오름차순, Total 정확 |
 | hex dump | 0x12, 0xab 등 알려진 패턴 | 정확한 hex, 행 경계 |
-| 디버그 변수 | 미설정/0/1/빈 값, realloc 경로 | 문서화된 계약과 일치 |
+| 디버그 변수 | 미설정/"0"/빈 값/"10"/"1", 초기화 후 변경·삭제, realloc 경로 | "1"만 ON, 두 플래그 캐싱 및 scribble 계약과 일치 |
 | 동시성 | malloc/realloc/free + 동기화된 조회 | 손상·hang 없음, 실패 전파 |
 | 호출 수 | 반복적인 작은 할당/해제 | 매 반복마다 mapping 생성·해제하지 않음 |
 | 빌드 계약 | HOSTTYPE fallback, 재실행, 헤더 수정 | 이름·symlink·필요한 rebuild |
@@ -224,6 +232,10 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 ```sh
 make test
 make test-m1
+make test-m2
+make test-m3
+make test-m4
+make test-m5
 make
 make run
 make debug_mode
@@ -233,7 +245,7 @@ make valgrind
 
 - 현재 main.c는 마지막에 항상 0을 반환하므로 종료 코드 0만으로 성공을 판단할 수 없다. M4/M5에서 수정할 항목이다.
 - make valgrind는 현재 x86_64_Linux 라이브러리 이름을 하드코딩한다. 다른 HOSTTYPE에서는 조정이 필요하다.
-- `make test`는 allocator를 별도 이름으로 컴파일하고 각 테스트를 독립 프로세스에서 실행한다. 실패·signal 종료는 nonzero 결과로 집계한다. 공유 라이브러리 interposition, 보너스 및 OS별 빌드 계약은 이 테스트 범위 밖이다.
+- `make test`는 allocator를 별도 이름으로 컴파일하고 각 테스트를 독립 프로세스에서 실행한다. 실패·signal 종료는 nonzero 결과로 집계한다. 공유 라이브러리 interposition은 이 테스트 범위 밖이다. M2/M3 개별 검증 결과는 아래 기록을 참조하며, 전체 보너스·OS별 검증 완료를 의미하지 않는다.
 - sanitizer나 Valgrind 적용 시 custom allocator의 interposition·도구 호환성을 먼저 확인한다. 도구 실행 성공만으로 allocator 정확성을 판정하지 않는다.
 
 ## 6. 최신 완료·검증 기록
@@ -242,10 +254,10 @@ make valgrind
 | --- | --- | --- | --- | --- |
 | M0 | 완료 | `90bdf749b9075b655544c4bd92e4f37c0f7f0a2c` | group 격리, LARGE 축소 후 양쪽 free 순서, 크기 경계 통과 | 공유 라이브러리 통합·다른 OS는 M5에서 검증 |
 | M1 | 자동 검사 통과, 일부 미검증 | `3c106d5910d1124fe0ec1103eaeb3fad8b1e8bcd` + 미커밋 수정 | `make test-m1`: Fedora 44 x86_64, 종료 코드 0, 30/30 통과, 실패 0 | getenv 사용 근거, C 이식성 전체; 다른 OS는 학교 대상 범위 밖 |
-| M2 | 미완료 | — | — | — |
-| M3 | 미완료 | — | — | — |
-| M4 | 미완료 | — | — | — |
-| M5 | 일부 검증 | 동일 커밋 | `make test`: 종료 코드 0, 실패 0, 16/16 통과 | M2–M4, 환경변수 활성화, OS별 실행, 호출 수, 전체 제출 게이트 |
+| M2 | 완료 | `5fb952df79d9aef484546687e1449b9cba122462` + 미커밋 수정 | `make test-m2`: 종료 코드 0, 9/9 통과, 실패 0 | 공유 라이브러리 통합·다른 OS는 M5에서 검증 |
+| M3 | 자동 검사 통과, 일부미검증 | `5fb952df79d9aef484546687e1449b9cba122462` + 미커밋 수정 | `make test-m3`: 종료 코드 0, 5/5 통과, 실패 0 | 해제 0xdd·확장 영역 계약, 잠금·재진입, 혼합 heap 주소 순서·Total, README |
+| M4 | 자동 검사 통과, 일부 미검증 | `5fb952df79d9aef484546687e1449b9cba122462` + 미커밋 수정 | `make test-m4`: 종료 코드 0, 3/3 통과, 실패 0 | 전체 잠금·unlock 경로, main.c 판정, 전체 공개 호출 조합의 동시성 |
+| M5 | 일부 검증 | `5fb952df79d9aef484546687e1449b9cba122462` + 미커밋 수정 | `make test-m5`: 종료 코드 0, 2/2 통과, 실패 0. 이전 make test 16/16은 2026-10-06 기록 참조 | M3/M4 잔여 항목, 전체 통합·양 모드 회귀, OS별 실행, 호출 수, README·전체 제출 게이트 |
 
 각 마일스톤은 코드를 작성했다는 이유만으로 완료 처리하지 않는다. 해당 완료 조건을 검증한 커밋과 실행 결과가 있어야 한다.
 
@@ -296,3 +308,23 @@ make valgrind
 - 출력은 물리적 block 연결 순서와 주소별 heap 선택을 사용한다. 해당 회귀 범위에서 구현 결함을 발견하지 않아 동작 코드는 변경하지 않았다.
 - 테스트 구현은 `test/milestones/m1_cases.c`, 헤더는 함수 선언만 유지한다. 출력 캡처는 임시 파일을 사용해 pipe 용량 때문에 조회가 멈추는 상황을 피한다.
 - 보너스 show_alloc_mem_ex는 이번에 페이지 출력만 확인했다. hex dump 정확성·동시성·M2–M4의 완료를 의미하지 않는다.
+
+### M2·M3 재검증 기록 (2026-10-08)
+
+- 검증 대상: HEAD `5fb952df79d9aef484546687e1449b9cba122462` + 현재 미커밋 수정 사항 (`src/realloc.c`, `src/tools/tools.c`, `test/milestones/m3_cases.c`). HEAD 커밋 단독의 결과로 해석하지 않는다.
+- `make test-m2`: **9/9 통과**, 실패 **0**, 종료 코드 **0**. 필수 a/b/c 축소 반례, TINY/SMALL 축소·메타데이터·재사용, 반복 축소·연속 병합, 앞·뒤·양쪽 병합과 header 공간 회수, heap 첫/마지막 경계, 빈 heap·group 개수·정순/역순 회수를 검증했다. 매 단계의 상태 검사에서 인접 free 블록, 링크·block_count·free_size 불일치가 없고 살아 있는 payload가 보존됐다.
+- `make test-m3`: **5/5 통과**, 실패 **0**, 종료 코드 **0**. 환경값·캐싱, 성공/실패 debug 로그, 할당·재할당 scribble, hex 행 경계, 빈 상태·살아 있는 할당의 확장 출력을 검증했다.
+- 환경변수 계약: MALLOC_DEBUG와 MALLOC_SCRIBBLE 모두 미설정·"0"·빈 문자열·"10"은 OFF, "1"만 ON. 두 변수의 25개 초기값 조합과 최초 초기화 이후 반대 값 설정·삭제에도 플래그가 유지됨을 확인했다.
+- 이전에 실패했던 realloc(NULL,37)의 0xaa 검사도 이번 현재 작업 트리에서는 통과했다. 일반 malloc의 0xaa와 이동 재할당 시 기존 37바이트 보존 검사도 통과했다.
+- 한계: M3의 해제 0xdd 계측, 재할당 확장 영역 계약·검증, 로그·dump의 잠금·재진입 점검, 혼합 heap의 확장 출력 주소 순서·Total, README 문서화는 남아 있다. M4/M5와 전체 제출 게이트는 이번에 실행하지 않았으며 전체 판정은 **INCOMPLETE**로 유지한다.
+- 이번 작업에서는 테스트 실행과 본 문서 갱신만 수행했으며 allocator·테스트 소스는 수정하지 않았다.
+
+### M4·M5 재검증 기록 (2026-10-08)
+
+- 검증 대상: HEAD `5fb952df79d9aef484546687e1449b9cba122462` + 현재 미커밋 수정 사항 (`src/realloc.c`, `src/tools/tools.c`, `test/milestones/m3_cases.c`). HEAD 커밋 단독의 결과로 해석하지 않는다.
+- `make test-m4`: **3/3 통과**, 실패 **0**, 종료 코드 **0**. 2/4/8스레드 재할당·동기화 조회, 스레드 간 소유권 전달, 의도적 손상 검출 케이스가 모두 통과했다.
+- M4 stress는 worker별 120회 TINY/SMALL/LARGE 크기 할당, 확장·축소 시 패턴 보존, 일반·확장 조회와 최종 내부 상태를 검사한다. payload mutex가 malloc·payload 쓰기·조회 구간을 직렬화하며, 독립 payload의 realloc/free는 동시 실행한다. 손상 주입 케이스의 PASS는 손상을 무시한 결과가 아니라 4개 worker가 모두 오류를 반환하고 stress가 실패한 것을 확인한 결과다.
+- `make test-m5`: **2/2 통과**, 실패 **0**, 종료 코드 **0**. 마지막 빈 TINY heap 유지와 32바이트 할당·해제 100회의 동일 heap 재사용, debug/scribble 환경변수를 설정한 확장·overflow 실패 회귀가 통과했다.
+- M5 활성화 회귀는 확장 후 기존 64바이트의 0x5a 보존과 SIZE_MAX 재할당 실패 후 원본 보존을 확인한다. 로그 내용·0xaa 패턴 자체를 검사하는 케이스는 아니므로 환경변수 동작의 직접 검증은 M3 결과를 참조한다.
+- 한계: M4 전체 잠금·unlock 경로 및 기존 main.c 판정 점검, M5 SMALL 빈 heap 재사용·mmap/munmap 호출 수 계측, 전체 make test·필수 테스트 양 모드 재실행, README·OS별 검증·전체 제출 게이트는 남아 있다. M4는 자동 검사 통과·일부 미검증, M5는 일부 검증으로 기록하고 전체 판정은 **INCOMPLETE**로 유지한다.
+- 이번 작업에서는 테스트 실행과 본 문서 갱신만 수행했으며 allocator·테스트 소스는 수정하지 않았다.
