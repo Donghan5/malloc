@@ -1,4 +1,5 @@
 #include "test_helpers.h"
+#include "test_ui.h"
 
 #define CHECK(expr) do { if (!(expr)) { \
     ft_putstr_fd("  " __FILE__ ":", 2); \
@@ -350,13 +351,9 @@ int main(int argc, char **argv)
         ft_putstr_fd("Invalid test index\n", 2);
         return 1;
     }
-    ft_putstr_fd("RUN  ", 1);
-    ft_putstr_fd(cases[index].name, 1);
-    ft_putstr_fd("\n", 1);
+    test_ui_start(cases[index].name);
     alarm(10);
     result = cases[index].run();
-    ft_putstr_fd(result ? "FAIL " : "PASS ", 1);
-    ft_putstr_fd(cases[index].name, 1);
-    ft_putstr_fd("\n", 1);
+    test_ui_result(cases[index].name, result == 0);
     return result;
 }

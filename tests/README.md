@@ -118,13 +118,81 @@ remains. The school's target is Fedora/Linux; other OS execution is outside this
 verification. This suite does not prove every possible C portability property
 or validate the extended hex dump or concurrency contracts.
 
-## Upcoming Feature — Bonus Part
+## M2 Defragmentation Tests
 
-The following items are reserved for future work and are not tested by this suite:
+```sh
+make test-m2
+```
 
-- pthread-based thread safety and concurrency stress tests.
-- Validation of the `MALLOC_DEBUG` and `MALLOC_SCRIBBLE` environment variables.
-- Validation of the `show_alloc_mem_ex` hex dump.
-- Defragmentation: merging adjacent free blocks and reusing space left by realloc shrinking.
+`m2_cases.c` implements nine cases; `m2_cases.h` contains function prototypes
+only. Each case runs in its own process with the existing runner, a 15-second
+outer timeout and a 10-second alarm. Any assertion, crash or timeout makes the
+target fail. To run one case directly, use `./tests/m2_cases 0` (indices 0–8).
 
-Existing bonus code does not count as verified bonus functionality in this suite.
+Coverage includes the milestone's exact 128/64/64 regression, TINY and SMALL
+shrinking, repeated shrinking, forward/backward/both-side merging, recovery of
+removed header space, reuse by larger requests, first/last block boundaries,
+and three-zone allocation/free cycles in both orders for both groups.
+State inspection checks physical block coverage, prev/next links, absence of
+adjacent free blocks, block_count, free_size and global group counts. Live
+payload patterns are checked throughout; freed payloads are never read.
+The empty-zone test permits keeping the final empty zone or releasing it,
+while requiring extra empty zones to be reclaimed.
+
+Local result (2026-10-07): **5/9 passed, 4 failed**. The required regression,
+TINY/SMALL shrink and repeated-shrink cases detect adjacent free blocks after
+realloc shrinking. These are allocator failures; M2 is not complete.
+
+## M3–M5 and evaluator suite
+
+```sh
+make test-m3   # environment, logging, scribble, hex dump
+make test-m4   # threads, pointer handoff, injected corruption
+make test-all  # M1–M5 plus M1 build/source checks and enabled mandatory cases
+make test-m5   # same complete submission gate
+```
+
+New suites are split into `.c` implementations and prototype-only `.h` files.
+They include only project headers from `inc` through the helper headers. The
+existing M1 build runner retains its existing system headers. New output uses
+`ft_putstr_fd` and `ft_print_unsigned_fd`, with green PASS and red FAIL markers.
+Each runtime test is a separate process, with a 10-second alarm and a 20-second
+exec-level alarm. Nonzero exit, crashes and timeouts fail the aggregate, while
+remaining tests continue. Captured child output is shown briefly on success
+and up to 4095 bytes on failure. Run commands from the repository root.
+
+M3 checks the current environment interpretation: MALLOC_DEBUG is enabled by
+presence (including `0` and empty), cached on first initialization;
+MALLOC_SCRIBBLE is refreshed on each operation, enabled by presence unless its
+first character is `0` (empty enables it). Ordinary malloc scribbles requested
+bytes with `0xaa`. The test requires realloc(NULL,n) to honor that allocation
+contract. Free payloads are never read to inspect `0xdd`; pre-unmap scribble
+instrumentation and exact expanded-tail behavior remain unverified.
+Hex checks cover 16-byte rows, a partial row, zero length, empty extended output,
+and a known live pattern and total. Exhaustive extended address-order and
+all log argument checks remain outside these added cases.
+
+M4 exercises 2, 4 and 8 workers with 120 iterations per worker across size
+classes, growth and shrinking. A separate mutex prevents payload writes from
+racing with dump reads. Realloc/free operations on independently owned pointers
+still execute concurrently. Only successfully created threads are joined.
+Heap links, physical block coverage, counts, free-size accounting and adjacent
+free blocks are checked after joining. The handoff case publishes a completed
+payload through pthread_create before another thread validates and frees it.
+An injected corruption case requires four distinct worker failures to reach
+the harness; it passes only when those failures are detected.
+
+M5 repeats all 16 mandatory cases with debug/scribble enabled and includes a
+bonus-enabled growth/overflow regression and retained-empty-zone reuse check.
+The latter checks reuse through mapped metadata, not mmap/munmap syscall counts;
+actual syscall instrumentation, LD_PRELOAD integration and other operating
+systems remain unverified. The legacy M1 runtime/build/source suite is also
+included as an aggregate check, so its 30 checks are counted as one additional
+item in the evaluator total. Running `tests/m5_cases` alone checks only the two
+M5-specific runtime cases, not the complete gate.
+
+Local validation on 2026-10-08 (Linux): **55/61 aggregate items passed**.
+Failures: four M2 shrink/coalescing regressions, M3 realloc(NULL,n) scribble,
+and M4 adjacent free blocks after concurrent realloc shrinking. These are
+reported as failures; the aggregate returns 1 and make returns a nonzero status.
+This does not certify completion of M2–M4 or the submission requirements.

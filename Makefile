@@ -56,7 +56,7 @@ clean:
 	@echo "Clean done"
 
 fclean: clean
-	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC) $(EDGE_TEST_EXEC) $(M1_TEST_EXEC) $(TEST_RUNNER)
+	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC) $(EDGE_TEST_EXEC) $(M1_TEST_EXEC) $(M2_TEST_EXEC) $(TEST_RUNNER) $(BONUS_EXEC) tests/all_cases
 	@echo "Fclean done"
 
 setup:
@@ -100,8 +100,8 @@ EDGE_TEST_CFLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
 test: $(EDGE_TEST_EXEC) $(TEST_RUNNER)
 	./$(TEST_RUNNER) ./$(EDGE_TEST_EXEC)
 
-$(EDGE_TEST_EXEC): tests/edge_cases.c tests/test_helpers.c tests/test_helpers.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/edge_cases.c tests/test_helpers.c $(SOURCES) -pthread -o $@
+$(EDGE_TEST_EXEC): tests/edge_cases.c tests/test_helpers.c tests/test_helpers.h tests/test_ui.c tests/test_ui.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/edge_cases.c tests/test_helpers.c tests/test_ui.c $(SOURCES) -pthread -o $@
 
 # M1 contract suite includes mandatory regressions and isolated build checks.
 .PHONY: test-m1
@@ -110,9 +110,40 @@ M1_TEST_EXEC = tests/m1_cases
 test-m1: $(M1_TEST_EXEC) $(TEST_RUNNER)
 	./$(TEST_RUNNER) ./$(M1_TEST_EXEC) --m1
 
-$(M1_TEST_EXEC): tests/edge_cases.c tests/m1_cases.c tests/m1_cases.h tests/test_helpers.c tests/test_helpers.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) -DM1_TESTS tests/edge_cases.c tests/m1_cases.c tests/test_helpers.c $(SOURCES) -pthread -o $@
+$(M1_TEST_EXEC): tests/edge_cases.c tests/m1_cases.c tests/m1_cases.h tests/test_helpers.c tests/test_helpers.h tests/test_ui.c tests/test_ui.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) -DM1_TESTS tests/edge_cases.c tests/m1_cases.c tests/test_helpers.c tests/test_ui.c $(SOURCES) -pthread -o $@
 
 
-$(TEST_RUNNER): tests/run_tests.c Makefile
-	$(CC) -std=gnu11 -Wall -Wextra -Werror -O0 -g $< -o $@
+# M2 defragmentation cases run in isolated processes using the existing runner.
+.PHONY: test-m2
+M2_TEST_EXEC = tests/m2_cases
+
+test-m2: $(M2_TEST_EXEC) $(TEST_RUNNER)
+	./$(TEST_RUNNER) ./$(M2_TEST_EXEC) --m2
+
+$(M2_TEST_EXEC): tests/m2_cases.c tests/m2_cases.h tests/test_helpers.c tests/test_helpers.h tests/test_ui.c tests/test_ui.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/m2_cases.c tests/test_helpers.c tests/test_ui.c $(SOURCES) -pthread -o $@
+
+$(TEST_RUNNER): tests/run_tests.c tests/test_ui.c tests/test_ui.h $(HEADERS) Makefile
+	$(CC) -std=gnu11 -Wall -Wextra -Werror -O0 -g -I$(PATH_INC) $< tests/test_ui.c -o $@
+
+# Bonus suites and evaluator-facing aggregate (no libc output helpers).
+BONUS_COMMON = tests/test_helpers.c tests/bonus_helpers.c
+BONUS_HEADERS = tests/test_helpers.h tests/bonus_helpers.h $(EDGE_TEST_HEADERS)
+BONUS_EXEC = tests/m3_cases tests/m4_cases tests/m5_cases
+
+$(BONUS_EXEC): tests/%: tests/%.c tests/%.h $(BONUS_COMMON) $(BONUS_HEADERS) $(SOURCES) Makefile
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $< $(BONUS_COMMON) $(SOURCES) -pthread -o $@
+
+tests/all_cases: tests/all_cases.c tests/all_cases.h $(HEADERS) $(SOURCES) Makefile
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $< $(SOURCES) -pthread -o $@
+
+.PHONY: test-m3 test-m4 test-m5 test-all
+test-m3: tests/m3_cases tests/all_cases
+	./tests/all_cases 3
+
+test-m4: tests/m4_cases tests/all_cases
+	./tests/all_cases 4
+
+test-m5 test-all: $(M1_TEST_EXEC) $(M2_TEST_EXEC) $(BONUS_EXEC) $(TEST_RUNNER) tests/all_cases
+	./tests/all_cases

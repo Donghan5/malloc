@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include "test_ui.h"
 
 static int checks;
 static int failures;
@@ -22,7 +23,7 @@ static void report(const char *name, int success)
 {
     ++checks;
     failures += !success;
-    printf("%s %s\n", success ? "PASS" : "FAIL", name);
+    test_ui_result(name, success);
     fflush(stdout);
 }
 
@@ -210,8 +211,9 @@ int main(int argc, char **argv)
     char binary[PATH_MAX], index[32];
     unsigned int count, i;
     int m1 = argc == 3 && !strcmp(argv[2], "--m1");
+    int m2 = argc == 3 && !strcmp(argv[2], "--m2");
     struct rlimit cores = {0, 0};
-    if ((argc != 2 && !m1) || !realpath(argv[1], binary)) return 1;
+    if ((argc != 2 && !m1 && !m2) || !realpath(argv[1], binary)) return 1;
     if (setrlimit(RLIMIT_CORE, &cores) || unsetenv("MALLOC_DEBUG") || unsetenv("MALLOC_SCRIBBLE")) return 1;
     output = tmpfile();
     if (!output) return 1;
@@ -223,11 +225,16 @@ int main(int argc, char **argv)
     if (fscanf(output, "%u", &count) != 1 || count == 0 || count > 10000)
     { fclose(output); return 1; }
     fclose(output);
+    test_ui_heading(m1 ? "M1" : (m2 ? "M2" : "Mandatory"));
     for (i = 0; i < count; ++i)
     {
         char *args[] = {binary, index, NULL};
         snprintf(index, sizeof(index), "%u", i);
-        report(index, run(args, NULL, -1, 15) == 0);
+        int result = run(args, NULL, -1, 15);
+        /* Normal cases already print their named result. */
+        if (result == 0 || result == 1)
+        { ++checks; failures += result != 0; }
+        else report(index, 0);
     }
     if (m1)
     {
@@ -239,6 +246,7 @@ int main(int argc, char **argv)
 #endif
         build_checks();
     }
-    printf("%s: %d/%d passed; %d failed\n", m1 ? "M1" : "Mandatory", checks - failures, checks, failures);
+    test_ui_summary(m1 ? "M1" : (m2 ? "M2" : "Mandatory"),
+        (unsigned int)(checks - failures), (unsigned int)checks);
     return failures ? 1 : 0;
 }
