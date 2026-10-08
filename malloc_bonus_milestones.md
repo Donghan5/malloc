@@ -198,7 +198,7 @@ PDF는 사용자 정의 디버그 변수를 허용한다. 현재 동작의 범�
 
 ## 4. 검증 케이스 목록
 
-아래는 전체 검증 계획이다. `tests/edge_cases.c`의 필수 16개 테스트는 통과했으며, M1의 Linux 빌드 계약도 추가 실행에서 통과했다. 보너스 및 다른 OS는 아직 미검증이다.
+아래는 전체 검증 계획이다. `test/edge_cases/edge_cases.c`의 필수 16개 테스트는 통과했으며, M1의 Linux 빌드 계약도 추가 실행에서 통과했다. 보너스 및 다른 OS는 아직 미검증이다.
 
 | 케이스 | 입력·순서 | 확인할 결과 |
 | --- | --- | --- |
@@ -268,11 +268,11 @@ make valgrind
 - 빌드 실패: `inc/define.h` 변경 후 공유 라이브러리 object 재빌드 없음.
 - 추가 통과: TINY/SMALL 단일 zone의 최대 크기 100개 수용, max_align_t 정렬, memmove 기능, 페이지 크기 출력, HOSTTYPE fallback·이름·symlink, 변경 없는 두 번째 make.
 - 기존 `make test`도 재실행하여 **16/16 통과** 확인. allocator 소스는 수정하지 않았다.
-- 상세 범위·한계: `tests/README.md`의 M1 Contract Tests. getenv 사용 근거, 다른 OS, mixed-class·block 출력 전체 검증은 아직 남아 있다.
+- 상세 범위·한계: `test/README.md`의 M1 Contract Tests. getenv 사용 근거, 다른 OS, mixed-class·block 출력 전체 검증은 아직 남아 있다.
 
 ### 테스트 언어 통일
 
-- 필수·M1 실행기와 검증 로직을 `tests/run_tests.c`로 통일했다.
+- 필수·M1 실행기와 검증 로직을 `test/run_tests.c`로 통일했다.
 - Python 실행기와 shell 테스트 스크립트는 제거했다. `make test`, `make test-m1` 명령은 유지한다.
 - C 실행기는 fork/exec로 각 테스트를 격리하고 timeout·signal 종료·실패를 집계한다. M1 소스 점검과 임시 복사본의 빌드 계약 점검도 C에서 수행한다.
 
@@ -294,5 +294,5 @@ make valgrind
 - show_alloc_mem: 혼합 TINY/SMALL/LARGE heap을 의도적으로 역순 연결한 뒤 heap·payload 주소 오름차순, 주소별 owner/group, end = start + data_size, 중복·누락 없음, Total 합계를 확인했다. free 블록과 제거된 LARGE heap은 출력·합계에서 제외되며, 최초 빈 상태와 전체 free 후에도 Total 0이다.
 - 페이지 크기: sysconf(_SC_PAGESIZE) 기준으로 get_page_size 및 일반·확장 출력이 일치한다. TINY 4페이지·SMALL 32페이지, mapping 시작·크기의 페이지 정렬, LARGE의 정렬 payload + heap/block metadata를 포함한 페이지 반올림, overflow 거절을 확인했다. 4096을 코드에 고정하지 않는다.
 - 출력은 물리적 block 연결 순서와 주소별 heap 선택을 사용한다. 해당 회귀 범위에서 구현 결함을 발견하지 않아 동작 코드는 변경하지 않았다.
-- 테스트 구현은 `tests/m1_cases.c`, 헤더는 함수 선언만 유지한다. 출력 캡처는 임시 파일을 사용해 pipe 용량 때문에 조회가 멈추는 상황을 피한다.
+- 테스트 구현은 `test/milestones/m1_cases.c`, 헤더는 함수 선언만 유지한다. 출력 캡처는 임시 파일을 사용해 pipe 용량 때문에 조회가 멈추는 상황을 피한다.
 - 보너스 show_alloc_mem_ex는 이번에 페이지 출력만 확인했다. hex dump 정확성·동시성·M2–M4의 완료를 의미하지 않는다.

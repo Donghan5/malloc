@@ -1,3 +1,4 @@
+#include "malloc.h"
 #include "test_helpers.h"
 #include "bonus_helpers.h"
 

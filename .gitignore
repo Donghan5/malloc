@@ -1,13 +1,7 @@
 .vscode
-/tests/edge_cases
-/tests/core
-/tests/core.*
 
-/tests/m1_cases
-/tests/m2_cases
-/tests/test_runner
-/tests/codex.md
-/tests/m3_cases
-/tests/m4_cases
-/tests/m5_cases
-/tests/all_cases
+
+/test/bin/
+/test/codex.md
+/test/core
+/test/core.*

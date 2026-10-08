@@ -1,5 +1,7 @@
 #include "malloc.h"
 #include "all_cases.h"
+#include "test_helpers.h"
+#include "test_ui.h"
 
 int run_isolated(char *const argv[], int enabled)
 {
@@ -36,31 +38,77 @@ int run_isolated(char *const argv[], int enabled)
     return status != 0;
 }
 
+int suite_count(const char *binary, size_t *count)
+{
+    char path[] = "/tmp/malloc-count-XXXXXX", output[32];
+    int fd = mkstemp(path), status;
+    pid_t child;
+    ssize_t n;
+    uintptr_t value;
+    const char *cursor = output;
+    if (fd < 0) return 1;
+    unlink(path);
+    child = fork();
+    if (child < 0) { close(fd); return 1; }
+    if (!child)
+    {
+        char *args[] = {(char *)binary, NULL};
+        if (dup2(fd, 1) < 0) _exit(125);
+        close(fd);
+        alarm(10);
+        execv(binary, args);
+        _exit(127);
+    }
+    if (waitpid(child, &status, 0) != child || status || lseek(fd, 0, SEEK_SET) < 0)
+    { close(fd); return 1; }
+    n = read(fd, output, sizeof(output) - 1); close(fd);
+    if (n <= 0 || n == (ssize_t)sizeof(output) - 1) return 1;
+    output[n] = 0;
+    if (!parse_number(&cursor, 10, &value) || *cursor != '\n' || cursor[1]
+        || !value || value > 10000) return 1;
+    *count = (size_t)value;
+    return 0;
+}
+
+static void index_text(size_t value, char *output)
+{
+    char reverse[32];
+    size_t length = 0, i;
+    do { reverse[length++] = (char)('0' + value % 10); value /= 10; } while (value);
+    for (i = 0; i < length; ++i) output[i] = reverse[length - i - 1];
+    output[length] = 0;
+}
+
 int main(int argc, char **argv)
 {
-    const char *binaries[] = {"./tests/m1_cases", "./tests/m2_cases", "./tests/m3_cases", "./tests/m4_cases", "./tests/m5_cases"};
-    const size_t counts[] = {25, 9, 5, 3, 2};
+    const char *binaries[] = {"./test/bin/m1_cases", "./test/bin/m2_cases", "./test/bin/m3_cases", "./test/bin/m4_cases", "./test/bin/m5_cases", "./test/bin/edge_cases"};
+    size_t count;
     size_t group, i, pass = 0, total = 0;
-    int result, first = 0, last = 5;
-    char index[16];
+    int result, first = 0, last = 6;
+    char index[32];
     if (argc == 2 && argv[1][0] >= '1' && argv[1][0] <= '5' && !argv[1][1])
     { first = argv[1][0] - '1'; last = first + 1; }
+    else if (argc == 2 && starts_with(argv[1], "edge") && argv[1][4] == 0)
+    { first = 5; last = 6; }
     else if (argc != 1) return 1;
     ft_putstr_fd("\n========== MALLOC M1–M5 ==========\n", 1);
     for (group = (size_t)first; group < (size_t)last; ++group)
     {
-        ft_putstr_fd("\nMilestone M", 1); ft_print_unsigned_fd(group + 1, 1); ft_putstr_fd("\n", 1);
-        for (i = 0; i < counts[group]; ++i)
+        if (group == 5) test_ui_heading("Edge cases M1–M5");
+        else { ft_putstr_fd("\nMilestone M", 1); ft_print_unsigned_fd(group + 1, 1); ft_putstr_fd("\n", 1); }
+        if (suite_count(binaries[group], &count))
+        { ++total; test_ui_result("cannot read suite count", 0); continue; }
+        for (i = 0; i < count; ++i)
         {
             char *args[] = {(char *)binaries[group], index, NULL};
-            index[0] = (char)('0' + i / 10); index[1] = (char)('0' + i % 10); index[2] = 0;
+            index_text(i, index);
             result = run_isolated(args, 0);
             ++total; pass += !result;
             ft_putstr_fd(result ? "\033[31m  FAIL\033[0m\n" : "\033[32m  PASS\033[0m\n", 1);
         }
         if (group == 0)
         {
-            char *audit[] = {"./tests/test_runner", "./tests/m1_cases", "--m1", NULL};
+            char *audit[] = {"./test/bin/test_runner", "./test/bin/m1_cases", "--m1", NULL};
             ft_putstr_fd("M1 build contracts and source audits\n", 1);
             result = run_isolated(audit, 0); ++total; pass += !result;
             ft_putstr_fd(result ? "\033[31m  FAIL\033[0m\n" : "\033[32m  PASS\033[0m\n", 1);
@@ -68,7 +116,7 @@ int main(int argc, char **argv)
             for (i = 0; i < 16; ++i)
             {
                 char *args[] = {(char *)binaries[group], index, NULL};
-                index[0] = (char)('0' + i / 10); index[1] = (char)('0' + i % 10); index[2] = 0;
+                index_text(i, index);
                 ft_putstr_fd("[debug/scribble enabled] ", 1);
                 result = run_isolated(args, 1); ++total; pass += !result;
                 ft_putstr_fd(result ? "\033[31m  FAIL\033[0m\n" : "\033[32m  PASS\033[0m\n", 1);

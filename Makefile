@@ -56,7 +56,7 @@ clean:
 	@echo "Clean done"
 
 fclean: clean
-	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC) $(EDGE_TEST_EXEC) $(M1_TEST_EXEC) $(M2_TEST_EXEC) $(TEST_RUNNER) $(BONUS_EXEC) tests/all_cases
+	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC) $(TEST_BINS)
 	@echo "Fclean done"
 
 setup:
@@ -87,63 +87,66 @@ debug_mode: all $(TEST_EXEC)
 scribble_mode: all $(TEST_EXEC)
 	MALLOC_SCRIBBLE=1 ./$(TEST_EXEC)
 
-# EDGE CASE TESTING RULES
-TEST_RUNNER = tests/test_runner
-EDGE_TEST_EXEC = tests/edge_cases
-EDGE_TEST_HEADERS = $(PATH_INC)/malloc.h $(PATH_INC)/struct.h
-EDGE_TEST_HEADERS += $(PATH_INC)/functions.h $(PATH_INC)/define.h
-EDGE_TEST_CPPFLAGS = -I$(PATH_INC) -Dmalloc=edge_malloc -Dfree=edge_free -Drealloc=edge_realloc
+# Structured test sources; generated executables live only in test/bin.
+TEST_ROOT = test
+TEST_BIN = $(TEST_ROOT)/bin
+TEST_RUNNER = $(TEST_BIN)/test_runner
+EDGE_TEST_EXEC = $(TEST_BIN)/edge_cases
+M1_TEST_EXEC = $(TEST_BIN)/m1_cases
+M2_TEST_EXEC = $(TEST_BIN)/m2_cases
+BONUS_EXEC = $(addprefix $(TEST_BIN)/,m3_cases m4_cases m5_cases)
+ALL_TEST_EXEC = $(TEST_BIN)/all_cases
+TEST_BINS = $(EDGE_TEST_EXEC) $(M1_TEST_EXEC) $(M2_TEST_EXEC) $(BONUS_EXEC) $(TEST_RUNNER) $(ALL_TEST_EXEC)
+TEST_INCLUDES = -I$(PATH_INC) -I$(TEST_ROOT)/helpers -I$(TEST_ROOT)/ui \
+                -I$(TEST_ROOT)/milestones -I$(TEST_ROOT)/edge_cases -I$(TEST_ROOT)/all_cases
+EDGE_TEST_CPPFLAGS = $(TEST_INCLUDES) -Dmalloc=edge_malloc -Dfree=edge_free -Drealloc=edge_realloc
 EDGE_TEST_CFLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
+TEST_COMMON = $(TEST_ROOT)/helpers/test_helpers.c $(TEST_ROOT)/helpers/bonus_helpers.c $(TEST_ROOT)/ui/test_ui.c
+TEST_HEADERS = $(HEADERS) $(wildcard $(TEST_ROOT)/helpers/*.h $(TEST_ROOT)/ui/*.h $(TEST_ROOT)/milestones/*.h $(TEST_ROOT)/edge_cases/*.h $(TEST_ROOT)/all_cases/*.h)
+EDGE_SOURCE = $(TEST_ROOT)/edge_cases/edge_cases.c
+EDGE_BONUS = $(TEST_ROOT)/edge_cases/bonus_edge_cases.c
 
-.PHONY: test
+.PHONY: test test-edge test-m1 test-m2 test-m3 test-m4 test-m5 test-all test-build
 
-test: $(EDGE_TEST_EXEC) $(TEST_RUNNER)
-	./$(TEST_RUNNER) ./$(EDGE_TEST_EXEC)
+test test-all: test-build
+	./$(ALL_TEST_EXEC)
 
-$(EDGE_TEST_EXEC): tests/edge_cases.c tests/test_helpers.c tests/test_helpers.h tests/test_ui.c tests/test_ui.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/edge_cases.c tests/test_helpers.c tests/test_ui.c $(SOURCES) -pthread -o $@
+test-build: $(TEST_BINS)
 
-# M1 contract suite includes mandatory regressions and isolated build checks.
-.PHONY: test-m1
-M1_TEST_EXEC = tests/m1_cases
+test-edge: $(EDGE_TEST_EXEC) $(ALL_TEST_EXEC)
+	./$(ALL_TEST_EXEC) edge
 
 test-m1: $(M1_TEST_EXEC) $(TEST_RUNNER)
 	./$(TEST_RUNNER) ./$(M1_TEST_EXEC) --m1
 
-$(M1_TEST_EXEC): tests/edge_cases.c tests/m1_cases.c tests/m1_cases.h tests/test_helpers.c tests/test_helpers.h tests/test_ui.c tests/test_ui.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) -DM1_TESTS tests/edge_cases.c tests/m1_cases.c tests/test_helpers.c tests/test_ui.c $(SOURCES) -pthread -o $@
-
-
-# M2 defragmentation cases run in isolated processes using the existing runner.
-.PHONY: test-m2
-M2_TEST_EXEC = tests/m2_cases
-
 test-m2: $(M2_TEST_EXEC) $(TEST_RUNNER)
 	./$(TEST_RUNNER) ./$(M2_TEST_EXEC) --m2
 
-$(M2_TEST_EXEC): tests/m2_cases.c tests/m2_cases.h tests/test_helpers.c tests/test_helpers.h tests/test_ui.c tests/test_ui.h $(SOURCES) $(EDGE_TEST_HEADERS) Makefile
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) tests/m2_cases.c tests/test_helpers.c tests/test_ui.c $(SOURCES) -pthread -o $@
+test-m3: $(TEST_BIN)/m3_cases $(ALL_TEST_EXEC)
+	./$(ALL_TEST_EXEC) 3
 
-$(TEST_RUNNER): tests/run_tests.c tests/test_ui.c tests/test_ui.h $(HEADERS) Makefile
-	$(CC) -std=gnu11 -Wall -Wextra -Werror -O0 -g -I$(PATH_INC) $< tests/test_ui.c -o $@
+test-m4: $(TEST_BIN)/m4_cases $(ALL_TEST_EXEC)
+	./$(ALL_TEST_EXEC) 4
 
-# Bonus suites and evaluator-facing aggregate (no libc output helpers).
-BONUS_COMMON = tests/test_helpers.c tests/bonus_helpers.c
-BONUS_HEADERS = tests/test_helpers.h tests/bonus_helpers.h $(EDGE_TEST_HEADERS)
-BONUS_EXEC = tests/m3_cases tests/m4_cases tests/m5_cases
+test-m5: $(TEST_BIN)/m5_cases $(ALL_TEST_EXEC)
+	./$(ALL_TEST_EXEC) 5
 
-$(BONUS_EXEC): tests/%: tests/%.c tests/%.h $(BONUS_COMMON) $(BONUS_HEADERS) $(SOURCES) Makefile
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $< $(BONUS_COMMON) $(SOURCES) -pthread -o $@
+$(EDGE_TEST_EXEC): $(EDGE_SOURCE) $(EDGE_BONUS) $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
+	@mkdir -p $(@D)
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $(EDGE_SOURCE) $(EDGE_BONUS) $(TEST_COMMON) $(SOURCES) -pthread -o $@
 
-tests/all_cases: tests/all_cases.c tests/all_cases.h $(HEADERS) $(SOURCES) Makefile
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $< $(SOURCES) -pthread -o $@
+$(M1_TEST_EXEC): $(EDGE_SOURCE) $(TEST_ROOT)/milestones/m1_cases.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
+	@mkdir -p $(@D)
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) -DM1_TESTS $(EDGE_SOURCE) $(TEST_ROOT)/milestones/m1_cases.c $(TEST_COMMON) $(SOURCES) -pthread -o $@
 
-.PHONY: test-m3 test-m4 test-m5 test-all
-test-m3: tests/m3_cases tests/all_cases
-	./tests/all_cases 3
+$(M2_TEST_EXEC) $(BONUS_EXEC): $(TEST_BIN)/%: $(TEST_ROOT)/milestones/%.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
+	@mkdir -p $(@D)
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $< $(TEST_COMMON) $(SOURCES) -pthread -o $@
 
-test-m4: tests/m4_cases tests/all_cases
-	./tests/all_cases 4
+$(ALL_TEST_EXEC): $(TEST_ROOT)/all_cases/all_cases.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
+	@mkdir -p $(@D)
+	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $< $(TEST_COMMON) $(SOURCES) -pthread -o $@
 
-test-m5 test-all: $(M1_TEST_EXEC) $(M2_TEST_EXEC) $(BONUS_EXEC) $(TEST_RUNNER) tests/all_cases
-	./tests/all_cases
+$(TEST_RUNNER): $(TEST_ROOT)/run_tests.c $(TEST_ROOT)/ui/test_ui.c $(TEST_HEADERS) Makefile
+	@mkdir -p $(@D)
+	$(CC) $(TEST_INCLUDES) $(EDGE_TEST_CFLAGS) $< $(TEST_ROOT)/ui/test_ui.c -o $@

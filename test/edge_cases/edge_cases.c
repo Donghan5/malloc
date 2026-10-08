@@ -1,5 +1,7 @@
+#include "malloc.h"
 #include "test_helpers.h"
 #include "test_ui.h"
+#include "bonus_edge_cases.h"
 
 #define CHECK(expr) do { if (!(expr)) { \
     ft_putstr_fd("  " __FILE__ ":", 2); \
@@ -320,6 +322,21 @@ int main(int argc, char **argv)
         {"LARGE heap unlink order", large_unlink},
         {"show_alloc_mem total", diagnostics},
         {"show_alloc_mem ascending addresses", diagnostics_address_order}
+#ifndef M1_TESTS
+        , {"M2 edge: exact split remainder", edge_m2_split_boundary}
+        , {"M2 edge: shrink between live neighbors", edge_m2_shrink_with_live_neighbors}
+        , {"M2 edge: merged-hole reuse", edge_m2_reuse_after_merge}
+        , {"M3 edge: runtime scribble toggle", edge_m3_runtime_scribble_toggle}
+        , {"M3 edge: realloc NULL/zero scribble", edge_m3_realloc_null_scribble}
+        , {"M3 edge: freed hole excluded from dump", edge_m3_freed_dump_exclusion}
+        , {"M4 edge: early-return unlock", edge_m4_early_return_unlock}
+        , {"M4 edge: concurrent initial allocation", edge_m4_concurrent_first_use}
+        , {"M4 edge: overflow failure unlock", edge_m4_realloc_failure_unlock}
+        , {"M5 edge: repeated SMALL heap reuse", edge_m5_small_heap_reuse}
+        , {"M5 edge: middle/head/tail LARGE removal", edge_m5_large_reclamation}
+        , {"M5 edge: recover after mmap failure", edge_m5_recovery_after_mapping_failure}
+#endif
+
 #ifdef M1_TESTS
         , {"M1 TINY zone: 100 maximum blocks", m1_tiny_capacity}
         , {"M1 SMALL zone: 100 maximum blocks", m1_small_capacity}

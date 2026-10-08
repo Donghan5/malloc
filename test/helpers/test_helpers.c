@@ -1,3 +1,4 @@
+#include "malloc.h"
 #include "test_helpers.h"
 
 /* Keep comparison and parsing independent of the allocator under test. */

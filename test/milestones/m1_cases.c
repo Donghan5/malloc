@@ -1,4 +1,5 @@
 #include "m1_cases.h"
+#include "malloc.h"
 #include "test_helpers.h"
 #include <stddef.h>
 

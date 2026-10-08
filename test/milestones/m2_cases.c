@@ -1,3 +1,4 @@
+#include "malloc.h"
 #include "test_helpers.h"
 #include "test_ui.h"
 #include "m2_cases.h"
