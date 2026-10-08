@@ -21,6 +21,7 @@ void *start_realloc(void *ptr, size_t size)
 {
 	t_heap			*heap;
 	t_block			*block;
+	t_block         *remainder;
 	void			*new_ptr;
 	size_t			original_size;
 
@@ -48,10 +49,12 @@ void *start_realloc(void *ptr, size_t size)
 	{
 	    if (heap->group == LARGE)
 			return ptr;
-		if (split_block(block, size))
+		remainder = split_block(block, size);
+		if (remainder)
 		{
 			heap->block_count++;
 			heap->free_size += (original_size - size);
+			heap->block_count -= coalesce_block(remainder);
 			return (ptr);
 		}
 		return (ptr);
