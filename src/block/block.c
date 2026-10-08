@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "../../inc/malloc.h"
+#include <stddef.h>
 
 /*
 ** Description: Remove a block from the heap, if the block is the last one.
@@ -88,30 +89,38 @@ t_block *split_block(t_block *block, size_t size)
 }
 
 // --- coalesce functions --- //
-void    coalesce_block(t_block *block)
+size_t    coalesce_block(t_block *block)
 {
     t_block *next_block;
     t_block *prev_block;
+    size_t  coalesce_count;
 
     next_block = block->next;
     prev_block = block->prev;
+    coalesce_count = 0;
     
     // --- coalesce with next block ---
-    if (next_block && next_block->is_free == true \
+    while (next_block && next_block->is_free == true \
         && block->is_free == true)
     {
         block->data_size += next_block->data_size + sizeof(t_block);
         block->next = next_block->next;
         if (block->next)
             block->next->prev = block;
+        next_block = block->next;
+        coalesce_count += 1;
     }
     // --- coalesce with prev block ---
-    if (prev_block && prev_block->is_free == true \
+    while (prev_block && prev_block->is_free == true \
         && block->is_free == true)
     {
         prev_block->data_size += block->data_size + sizeof(t_block);
         prev_block->next = block->next;
         if (prev_block->next)
             prev_block->next->prev = prev_block;
+        block = prev_block;
+        prev_block = block->prev;
+        coalesce_count += 1;
     }
+    return (coalesce_count);
 }
