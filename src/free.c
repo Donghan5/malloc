@@ -35,11 +35,7 @@ void	start_free(void *ptr)
 		if (heap->group == TINY || heap->group == SMALL)
 		{
 			heap->free_size += (block->data_size + sizeof(t_block));
-			if (block->next && block->next->is_free)
-				heap->block_count--;
-			if (block->prev && block->prev->is_free)
-				heap->block_count--;
-			coalesce_block(block);
+			heap->block_count -= coalesce_block(block);
 			first = (t_block *)HEAP_SHIFT(heap);
 			if (first->prev == NULL && first->next == NULL && first->is_free == true)
 			{
