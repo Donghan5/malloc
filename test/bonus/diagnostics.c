@@ -1,23 +1,11 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   m3_cases.c                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/10/08 21:35:37 by donghank          #+#    #+#             */
-/*   Updated: 2026/10/08 21:35:37 by donghank         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "malloc.h"
 #include "test_helpers.h"
 #include "bonus_helpers.h"
-#include "m3_cases.h"
+#include "test_ui.h"
 #define CHECK(x) do { if (!(x)) { ft_putstr_fd("Assertion: " #x "\n", 2); return 1; } } while (0)
 
 /* Both flags are enabled only by "1" and cached after initialization. */
-int m3_environment(void)
+int diagnostics_environment(void)
 {
     const char *values[] = {NULL, "0", "", "10", "1"};
     const int enabled[] = {0, 0, 0, 0, 1};
@@ -33,7 +21,7 @@ int m3_environment(void)
             else CHECK(unsetenv("MALLOC_DEBUG") == 0);
             if (values[j]) CHECK(setenv("MALLOC_SCRIBBLE", values[j], 1) == 0);
             else CHECK(unsetenv("MALLOC_SCRIBBLE") == 0);
-            g_data.initialized = 0;
+            fixture_reset_flags();
             free(NULL);
             CHECK(g_data.initialized == 1);
             CHECK(g_data.debug == enabled[i]);
@@ -54,14 +42,14 @@ int m3_environment(void)
     return 0;
 }
 
-int m3_debug_logs(void)
+int diagnostics_debug_logs(void)
 {
     volatile size_t overflow = SIZE_MAX;
     char output[4096];
     unsigned char *p, *q;
     int fd, saved;
     CHECK(setenv("MALLOC_DEBUG", "1", 1) == 0);
-    g_data.initialized = 0;
+    fixture_reset_flags();
     fd = capture_begin(&saved); CHECK(fd >= 0);
     p = malloc(32);
     q = realloc(p, 64);
@@ -78,11 +66,11 @@ int m3_debug_logs(void)
     return 0;
 }
 
-int m3_scribble(void)
+int diagnostics_scribble(void)
 {
     unsigned char *p, *q;
     CHECK(setenv("MALLOC_SCRIBBLE", "1", 1) == 0);
-    g_data.initialized = 0;
+    fixture_reset_flags();
     p = malloc(37); CHECK(p && pattern(p, 37, 0xaa));
     ft_memset(p, 0x12, 37);
     q = realloc(p, SMALL_BLOCK_SIZE + 64);
@@ -94,7 +82,7 @@ int m3_scribble(void)
     return 0;
 }
 
-int m3_hex_rows(void)
+int diagnostics_hex_rows(void)
 {
     unsigned char bytes[17];
     char output[256];
@@ -109,7 +97,7 @@ int m3_hex_rows(void)
     return 0;
 }
 
-int m3_extended_output(void)
+int diagnostics_extended_output(void)
 {
     char output[8192];
     unsigned char *p;
@@ -128,9 +116,9 @@ int m3_extended_output(void)
     return 0;
 }
 
-int main(int argc, char **argv)
-{
-    const char *names[] = {"M3 environment values and caching", "M3 success/failure debug logs", "M3 allocation and realloc scribble", "M3 hex row boundaries", "M3 empty and live extended output"};
-    int (*cases[])(void) = {m3_environment, m3_debug_logs, m3_scribble, m3_hex_rows, m3_extended_output};
-    return bonus_run(argc, argv, names, cases, 5);
+
+int main(int argc, char **argv) {
+ const char *names[] = {"diagnostics_environment", "diagnostics_debug_logs", "diagnostics_scribble", "diagnostics_hex_rows", "diagnostics_extended_output"};
+ int (*cases[])(void) = {diagnostics_environment, diagnostics_debug_logs, diagnostics_scribble, diagnostics_hex_rows, diagnostics_extended_output};
+ return bonus_run(argc, argv, names, cases, sizeof(cases)/sizeof(cases[0]));
 }

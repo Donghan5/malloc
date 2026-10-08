@@ -161,7 +161,7 @@ static int same_stamp(const struct stat *a, const struct stat *b)
 
 static void build_checks(void)
 {
-    char directory[] = "/tmp/malloc-m1-XXXXXX";
+    char directory[] = "/tmp/malloc-build-XXXXXX";
     char library[PATH_MAX], link[PATH_MAX], objects[PATH_MAX], header[PATH_MAX];
     char target[PATH_MAX];
     struct utsname host;
@@ -196,6 +196,27 @@ static void build_checks(void)
         && lstat(link, &link_info) == 0 && S_ISLNK(link_info.st_mode)
         && length >= 0 && !strcmp(target, strrchr(library, '/') + 1);
     report("HOSTTYPE fallback / shared library / symlink", success);
+    {
+        FILE *symbols = tmpfile();
+        char *args[] = {"nm", "-D", "--defined-only", library, NULL};
+        char line[512];
+        unsigned found = 0;
+        int ok = symbols && ready && run(args, NULL, fileno(symbols), 10) == 0;
+        if (ok) {
+            rewind(symbols);
+            while (fgets(line, sizeof(line), symbols)) {
+                char *name = strrchr(line, ' ');
+                if (!name) continue;
+                if (!strcmp(name + 1, "malloc\n")) found |= 1;
+                if (!strcmp(name + 1, "free\n")) found |= 2;
+                if (!strcmp(name + 1, "realloc\n")) found |= 4;
+                if (!strcmp(name + 1, "show_alloc_mem\n")) found |= 8;
+            }
+        }
+        if (symbols) fclose(symbols);
+        report("shared library public symbols", ok && found == 15);
+    }
+
     success = ready && stat(library, &before) == 0 && build(directory)
         && stat(library, &after) == 0 && same_stamp(&before, &after);
     report("unchanged second make", success);
@@ -217,48 +238,12 @@ static void build_checks(void)
     { perror("temporary build cleanup"); ++failures; }
 }
 
-int main(int argc, char **argv)
-{
-    FILE *output;
-    char binary[PATH_MAX], index[32];
-    unsigned int count, i;
-    int m1 = argc == 3 && !strcmp(argv[2], "--m1");
-    int m2 = argc == 3 && !strcmp(argv[2], "--m2");
-    struct rlimit cores = {0, 0};
-    if ((argc != 2 && !m1 && !m2) || !realpath(argv[1], binary)) return 1;
-    if (setrlimit(RLIMIT_CORE, &cores) || unsetenv("MALLOC_DEBUG") || unsetenv("MALLOC_SCRIBBLE")) return 1;
-    output = tmpfile();
-    if (!output) return 1;
-    {
-        char *args[] = {binary, NULL};
-        if (run(args, NULL, fileno(output), 10) != 0) { fclose(output); return 1; }
-    }
-    rewind(output);
-    if (fscanf(output, "%u", &count) != 1 || count == 0 || count > 10000)
-    { fclose(output); return 1; }
-    fclose(output);
-    test_ui_heading(m1 ? "M1" : (m2 ? "M2" : "Mandatory"));
-    for (i = 0; i < count; ++i)
-    {
-        char *args[] = {binary, index, NULL};
-        snprintf(index, sizeof(index), "%u", i);
-        int result = run(args, NULL, -1, 15);
-        /* Normal cases already print their named result. */
-        if (result == 0 || result == 1)
-        { ++checks; failures += result != 0; }
-        else report(index, 0);
-    }
-    if (m1)
-    {
-        report("source audit: known cross-object pointer subtraction", subtraction_audit());
-#ifdef __linux__
-        audit_ok = 1;
-        if (nftw("src", scan_page, 16, FTW_PHYS) || nftw("inc", scan_page, 16, FTW_PHYS)) audit_ok = 0;
-        report("Linux page API source audit", audit_ok);
-#endif
-        build_checks();
-    }
-    test_ui_summary(m1 ? "M1" : (m2 ? "M2" : "Mandatory"),
-        (unsigned int)(checks - failures), (unsigned int)checks);
-    return failures ? 1 : 0;
+int main(void) {
+ report("source audit: known cross-object pointer subtraction", subtraction_audit());
+ audit_ok = 1;
+ if (nftw("src", scan_page, 16, FTW_PHYS) || nftw("inc", scan_page, 16, FTW_PHYS)) audit_ok = 0;
+ report("Linux page API source audit", audit_ok);
+ build_checks();
+ test_ui_summary("build contracts", checks - failures, checks);
+ return failures != 0;
 }

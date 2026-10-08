@@ -10,7 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "malloc.h"
+#include <unistd.h>
+#include <stddef.h>
 #include "test_ui.h"
 
 static void put(const char *text)

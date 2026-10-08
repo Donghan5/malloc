@@ -1,142 +1,65 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   all_cases.c                                        :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/10/08 21:35:37 by donghank          #+#    #+#             */
-/*   Updated: 2026/10/08 21:35:37 by donghank         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/resource.h>
+#include <signal.h>
+#include <errno.h>
 
-#include "malloc.h"
-#include "all_cases.h"
-#include "test_helpers.h"
-#include "test_ui.h"
-
-int run_isolated(char *const argv[], int enabled)
+static int run(const char *binary, const char *index, int enabled, int count)
 {
-    char path[] = "/tmp/malloc-review-XXXXXX";
-    char output[4096];
-    ssize_t n;
-    int fd = mkstemp(path), status;
-    pid_t child;
-    if (fd < 0) return 1;
-    unlink(path);
-    child = fork();
-    if (child < 0) { close(fd); return 1; }
-    if (!child)
-    {
-        struct rlimit limit = {0, 0};
-        setrlimit(RLIMIT_CORE, &limit);
-        if (dup2(fd, 1) < 0 || dup2(fd, 2) < 0) _exit(125);
-        close(fd);
-        if (enabled) { setenv("MALLOC_DEBUG", "1", 1); setenv("MALLOC_SCRIBBLE", "1", 1); }
-        else { unsetenv("MALLOC_DEBUG"); unsetenv("MALLOC_SCRIBBLE"); }
-        alarm(20);
-        execv(argv[0], argv);
-        _exit(127);
-    }
-    if (waitpid(child, &status, 0) != child) { close(fd); return 1; }
-    if (lseek(fd, 0, SEEK_SET) < 0) { close(fd); return 1; }
-    while ((n = read(fd, output, sizeof(output) - 1)) > 0)
-    {
-        output[n] = 0;
-        ft_putstr_fd(output, 1);
-    }
-    close(fd);
-    if (n < 0) return 1;
-    ft_putstr_fd("\n", 1);
-    return status != 0;
+ FILE *out = tmpfile();
+ int status;
+ pid_t pid;
+ if (!out) return -1;
+ fflush(NULL);
+ pid = fork();
+ if (pid < 0) { fclose(out); return -1; }
+ if (!pid) {
+  struct rlimit limit = {0,0};
+  setrlimit(RLIMIT_CORE, &limit);
+  unsetenv("LD_PRELOAD");
+  if (enabled) { setenv("MALLOC_DEBUG","1",1); setenv("MALLOC_SCRIBBLE","1",1); }
+  else { unsetenv("MALLOC_DEBUG"); unsetenv("MALLOC_SCRIBBLE"); }
+  if (dup2(fileno(out),1)<0 || dup2(fileno(out),2)<0) _exit(125);
+  alarm(180);
+  if (index) execl(binary,binary,index,(char *)NULL);
+  else execl(binary,binary,(char *)NULL);
+  _exit(127);
+ }
+ while (waitpid(pid,&status,0)<0) { if(errno!=EINTR) { fclose(out); return -1; } }
+ rewind(out);
+ int result = WIFEXITED(status) ? WEXITSTATUS(status) : 128+WTERMSIG(status);
+ if (count) {
+  unsigned n; char extra;
+  if(result || fscanf(out,"%u %c",&n,&extra)!=1 || !n || n>10000) result=-1;
+  else result=(int)n;
+ } else {
+  char buf[4096]; size_t n;
+  while((n=fread(buf,1,sizeof(buf),out))) fwrite(buf,1,n,stdout);
+  printf("%s %s%s%s (status %d)\n",result?"FAIL":"PASS",binary,index?" case ":"",index?index:"",result);
+ }
+ fclose(out); return result;
 }
-
-int suite_count(const char *binary, size_t *count)
+int main(int argc,char **argv)
 {
-    char path[] = "/tmp/malloc-count-XXXXXX", output[32];
-    int fd = mkstemp(path), status;
-    pid_t child;
-    ssize_t n;
-    uintptr_t value;
-    const char *cursor = output;
-    if (fd < 0) return 1;
-    unlink(path);
-    child = fork();
-    if (child < 0) { close(fd); return 1; }
-    if (!child)
-    {
-        char *args[] = {(char *)binary, NULL};
-        if (dup2(fd, 1) < 0) _exit(125);
-        close(fd);
-        alarm(10);
-        execv(binary, args);
-        _exit(127);
-    }
-    if (waitpid(child, &status, 0) != child || status || lseek(fd, 0, SEEK_SET) < 0)
-    { close(fd); return 1; }
-    n = read(fd, output, sizeof(output) - 1); close(fd);
-    if (n <= 0 || n == (ssize_t)sizeof(output) - 1) return 1;
-    output[n] = 0;
-    if (!parse_number(&cursor, 10, &value) || *cursor != '\n' || cursor[1]
-        || !value || value > 10000) return 1;
-    *count = (size_t)value;
-    return 0;
-}
-
-static void index_text(size_t value, char *output)
-{
-    char reverse[32];
-    size_t length = 0, i;
-    do { reverse[length++] = (char)('0' + value % 10); value /= 10; } while (value);
-    for (i = 0; i < length; ++i) output[i] = reverse[length - i - 1];
-    output[length] = 0;
-}
-
-int main(int argc, char **argv)
-{
-    const char *binaries[] = {"./test/bin/m1_cases", "./test/bin/m2_cases", "./test/bin/m3_cases", "./test/bin/m4_cases", "./test/bin/m5_cases", "./test/bin/edge_cases"};
-    size_t count;
-    size_t group, i, pass = 0, total = 0;
-    int result, first = 0, last = 6;
-    char index[32];
-    if (argc == 2 && argv[1][0] >= '1' && argv[1][0] <= '5' && !argv[1][1])
-    { first = argv[1][0] - '1'; last = first + 1; }
-    else if (argc == 2 && starts_with(argv[1], "edge") && argv[1][4] == 0)
-    { first = 5; last = 6; }
-    else if (argc != 1) return 1;
-    ft_putstr_fd("\n========== MALLOC M1–M5 ==========\n", 1);
-    for (group = (size_t)first; group < (size_t)last; ++group)
-    {
-        if (group == 5) test_ui_heading("Edge cases M1–M5");
-        else { ft_putstr_fd("\nMilestone M", 1); ft_print_unsigned_fd(group + 1, 1); ft_putstr_fd("\n", 1); }
-        if (suite_count(binaries[group], &count))
-        { ++total; test_ui_result("cannot read suite count", 0); continue; }
-        for (i = 0; i < count; ++i)
-        {
-            char *args[] = {(char *)binaries[group], index, NULL};
-            index_text(i, index);
-            result = run_isolated(args, 0);
-            ++total; pass += !result;
-            ft_putstr_fd(result ? "\033[31m  FAIL\033[0m\n" : "\033[32m  PASS\033[0m\n", 1);
-        }
-        if (group == 0)
-        {
-            char *audit[] = {"./test/bin/test_runner", "./test/bin/m1_cases", "--m1", NULL};
-            ft_putstr_fd("M1 build contracts and source audits\n", 1);
-            result = run_isolated(audit, 0); ++total; pass += !result;
-            ft_putstr_fd(result ? "\033[31m  FAIL\033[0m\n" : "\033[32m  PASS\033[0m\n", 1);
-            /* Repeat all mandatory contracts with bonus flags enabled. */
-            for (i = 0; i < 16; ++i)
-            {
-                char *args[] = {(char *)binaries[group], index, NULL};
-                index_text(i, index);
-                ft_putstr_fd("[debug/scribble enabled] ", 1);
-                result = run_isolated(args, 1); ++total; pass += !result;
-                ft_putstr_fd(result ? "\033[31m  FAIL\033[0m\n" : "\033[32m  PASS\033[0m\n", 1);
-            }
-        }
-    }
-    ft_putstr_fd("\nResult: ", 1); ft_print_unsigned_fd(pass, 1); ft_putstr_fd("/", 1);
-    ft_print_unsigned_fd(total, 1); ft_putstr_fd(" passed\n", 1);
-    return pass != total;
+ const char *bins[]={"mandatory/basic","mandatory/zones_output","mandatory/reuse","mandatory/heap_edges","mandatory/reclamation","bonus/coalescing","bonus/coalescing_edges","bonus/diagnostics","bonus/diagnostics_edges","bonus/concurrency","bonus/concurrency_edges","integration/build_contracts","integration/preload"};
+ unsigned pass=0,total=0;
+ if(argc>2 || (argc==2 && strcmp(argv[1],"mandatory") && strcmp(argv[1],"bonus") && strcmp(argv[1],"integration"))) return 2;
+ for(size_t g=0;g<sizeof(bins)/sizeof(bins[0]);g++) {
+  char path[128]; snprintf(path,sizeof(path),"./test/bin/%s",bins[g]);
+  if(argc==2 && strncmp(bins[g],argv[1],strlen(argv[1]))) continue;
+  if(g>=11) { ++total; pass+=run(path,NULL,0,0)==0; continue; }
+  int n=run(path,NULL,0,1);
+  if(n<0) { ++total; printf("FAIL suite count %s\n",path); continue; }
+  for(int mode=0;mode<(g<5?2:1);mode++) for(int i=0;i<n;i++) {
+   char index[32]; snprintf(index,sizeof(index),"%d",i);
+   if(mode) printf("[debug/scribble enabled]\n");
+   ++total; pass+=run(path,index,mode,0)==0;
+  }
+ }
+ printf("Result: %u/%u passed; %u failed\n",pass,total,total-pass);
+ return pass!=total;
 }

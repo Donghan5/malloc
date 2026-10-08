@@ -1,22 +1,7 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   m4_cases.c                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/10/08 21:35:37 by donghank          #+#    #+#             */
-/*   Updated: 2026/10/08 21:35:37 by donghank         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "malloc.h"
 #include "test_helpers.h"
 #include "bonus_helpers.h"
-#include "m4_cases.h"
-
-/* Each worker owns its payload. This mutex also excludes dump reads from
- * payload writes; allocator entry points retain their own internal mutex. */
+#include "test_ui.h"
 static pthread_mutex_t payload_lock = PTHREAD_MUTEX_INITIALIZER;
 static int injected;
 static size_t detected;
@@ -74,11 +59,11 @@ static int stress(size_t count)
     if (bonus_valid_state()) failed = 1;
     return failed;
 }
-int m4_stress(void)
+int concurrency_stress(void)
 {
     return stress(2) || stress(4) || stress(8);
 }
-int m4_failure_detection(void)
+int concurrency_failure_detection(void)
 {
     int result;
     detected = 0;
@@ -95,7 +80,7 @@ static void *release_received(void *arg)
     free(p);
     return (void *)(uintptr_t)failed;
 }
-int m4_handoff(void)
+int concurrency_handoff(void)
 {
     pthread_t thread;
     void *result;
@@ -107,9 +92,9 @@ int m4_handoff(void)
     if (pthread_join(thread, &result)) return 1;
     return result != NULL || bonus_valid_state();
 }
-int main(int argc, char **argv)
-{
-    const char *names[] = {"M4 2/4/8-thread realloc and synchronized display", "M4 cross-thread ownership handoff", "M4 injected corruption must fail worker"};
-    int (*cases[])(void) = {m4_stress, m4_handoff, m4_failure_detection};
-    return bonus_run(argc, argv, names, cases, 3);
+
+int main(int argc, char **argv) {
+ const char *names[] = {"concurrency_stress", "concurrency_failure_detection", "concurrency_handoff"};
+ int (*cases[])(void) = {concurrency_stress, concurrency_failure_detection, concurrency_handoff};
+ return bonus_run(argc, argv, names, cases, sizeof(cases)/sizeof(cases[0]));
 }

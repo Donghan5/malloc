@@ -87,97 +87,67 @@ debug_mode: all $(TEST_EXEC)
 scribble_mode: all $(TEST_EXEC)
 	MALLOC_SCRIBBLE=1 ./$(TEST_EXEC)
 
-# Structured test sources; generated executables live only in test/bin.
-TEST_ROOT = test
-TEST_BIN = $(TEST_ROOT)/bin
-TEST_OBJ = $(TEST_ROOT)/obj
-CORRECTION_SOURCES = $(sort $(wildcard $(TEST_ROOT)/correction/test*.c))
-CORRECTION_OBJECTS = $(patsubst $(TEST_ROOT)/%.c,$(TEST_OBJ)/%.o,$(CORRECTION_SOURCES))
-CORRECTION_BINS = $(patsubst $(TEST_ROOT)/%.c,$(TEST_BIN)/%,$(CORRECTION_SOURCES))
-CORRECTION_CFLAGS = -std=gnu11 -Wall -Wextra -O0 -g -fno-builtin
-TEST_RUNNER = $(TEST_BIN)/test_runner
-EDGE_TEST_EXEC = $(TEST_BIN)/edge_cases
-M1_TEST_EXEC = $(TEST_BIN)/m1_cases
-M2_TEST_EXEC = $(TEST_BIN)/m2_cases
-BONUS_EXEC = $(addprefix $(TEST_BIN)/,m3_cases m4_cases m5_cases)
+# Functional test suites. Only unit fixtures rename allocator entry points.
+TEST_BIN = test/bin
+TEST_OBJ = test/obj
+UNIT_FLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
+UNIT_INCLUDES = -Iinc -Itest/helpers -Itest/ui
+UNIT_RENAMES = -Dmalloc=edge_malloc -Dfree=edge_free -Drealloc=edge_realloc
+TEST_COMMON = test/helpers/test_helpers.c test/helpers/bonus_helpers.c test/ui/test_ui.c
+TEST_HEADERS = $(HEADERS) $(wildcard test/helpers/*.h test/ui/*.h)
+MANDATORY_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/mandatory/*.c))
+BONUS_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/bonus/*.c))
+INTEGRATION_BINS = $(addprefix $(TEST_BIN)/integration/,build_contracts preload workload)
 ALL_TEST_EXEC = $(TEST_BIN)/all_cases
-TEST_BINS = $(EDGE_TEST_EXEC) $(M1_TEST_EXEC) $(M2_TEST_EXEC) $(BONUS_EXEC) $(TEST_RUNNER) $(ALL_TEST_EXEC)
-TEST_INCLUDES = -I$(PATH_INC) -I$(TEST_ROOT)/helpers -I$(TEST_ROOT)/ui \
-                -I$(TEST_ROOT)/milestones -I$(TEST_ROOT)/edge_cases -I$(TEST_ROOT)/all_cases
-EDGE_TEST_CPPFLAGS = $(TEST_INCLUDES) -Dmalloc=edge_malloc -Dfree=edge_free -Drealloc=edge_realloc
-EDGE_TEST_CFLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
-TEST_COMMON = $(TEST_ROOT)/helpers/test_helpers.c $(TEST_ROOT)/helpers/bonus_helpers.c $(TEST_ROOT)/ui/test_ui.c
-TEST_HEADERS = $(HEADERS) $(wildcard $(TEST_ROOT)/helpers/*.h $(TEST_ROOT)/ui/*.h $(TEST_ROOT)/milestones/*.h $(TEST_ROOT)/edge_cases/*.h $(TEST_ROOT)/all_cases/*.h)
-EDGE_SOURCE = $(TEST_ROOT)/edge_cases/edge_cases.c
-EDGE_BONUS = $(TEST_ROOT)/edge_cases/bonus_edge_cases.c
-
-.PHONY: test test-edge test-m1 test-m2 test-m3 test-m4 test-m5 test-all test-build
-.PHONY: test-correction test-correction-build test-clean test-fclean
-
-test-correction: test-correction-build
-	@failed=0; for binary in $(CORRECTION_BINS); do \
-		echo "RUN $$binary"; \
-		if "./$$binary"; then echo "PASS $$binary"; \
-		else echo "FAIL $$binary"; failed=1; fi; \
-	done; exit $$failed
-
-test-correction-build: $(CORRECTION_BINS)
-
-test-clean:
-	@rm -rf $(TEST_OBJ)
-	@echo "Test clean done"
-
-test-fclean: test-clean
-	@rm -f $(TEST_BINS) $(CORRECTION_BINS) $(TEST_EXEC)
-	@echo "Test fclean done"
-
-$(TEST_OBJ)/correction/%.o: $(TEST_ROOT)/correction/%.c $(HEADERS) Makefile
-	@mkdir -p $(@D)
-	$(CC) $(CORRECTION_CFLAGS) -I$(PATH_INC) -c $< -o $@
-
-$(CORRECTION_BINS): $(TEST_BIN)/correction/%: $(TEST_OBJ)/correction/%.o $(NAME)
-	@mkdir -p $(@D)
-	$(CC) $< ./$(NAME) -pthread -Wl,-rpath,'$$ORIGIN/../../..' -o $@
+TEST_BINS = $(MANDATORY_BINS) $(BONUS_BINS) $(INTEGRATION_BINS) $(ALL_TEST_EXEC)
+CORRECTION_SOURCES = $(sort $(wildcard test/correction/test*.c))
+CORRECTION_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(CORRECTION_SOURCES))
+.PHONY: test test-all test-build test-mandatory test-bonus test-integration test-clean test-fclean test-correction test-correction-build
 
 test test-all: test-build
 	./$(ALL_TEST_EXEC)
 
-test-build: $(TEST_BINS)
+test-build: $(TEST_BINS) $(NAME)
 
-test-edge: $(EDGE_TEST_EXEC) $(ALL_TEST_EXEC)
-	./$(ALL_TEST_EXEC) edge
+test-mandatory: $(MANDATORY_BINS) $(ALL_TEST_EXEC)
+	./$(ALL_TEST_EXEC) mandatory
 
-test-m1: $(M1_TEST_EXEC) $(TEST_RUNNER)
-	./$(TEST_RUNNER) ./$(M1_TEST_EXEC) --m1
+test-bonus: $(BONUS_BINS) $(ALL_TEST_EXEC)
+	./$(ALL_TEST_EXEC) bonus
 
-test-m2: $(M2_TEST_EXEC) $(TEST_RUNNER)
-	./$(TEST_RUNNER) ./$(M2_TEST_EXEC) --m2
+test-integration: $(INTEGRATION_BINS) $(ALL_TEST_EXEC) $(NAME)
+	./$(ALL_TEST_EXEC) integration
 
-test-m3: $(TEST_BIN)/m3_cases $(ALL_TEST_EXEC)
-	./$(ALL_TEST_EXEC) 3
-
-test-m4: $(TEST_BIN)/m4_cases $(ALL_TEST_EXEC)
-	./$(ALL_TEST_EXEC) 4
-
-test-m5: $(TEST_BIN)/m5_cases $(ALL_TEST_EXEC)
-	./$(ALL_TEST_EXEC) 5
-
-$(EDGE_TEST_EXEC): $(EDGE_SOURCE) $(EDGE_BONUS) $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
+$(MANDATORY_BINS) $(BONUS_BINS): $(TEST_BIN)/%: test/%.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
 	@mkdir -p $(@D)
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $(EDGE_SOURCE) $(EDGE_BONUS) $(TEST_COMMON) $(SOURCES) -pthread -o $@
+	$(CC) $(UNIT_FLAGS) $(UNIT_INCLUDES) $(UNIT_RENAMES) $< $(TEST_COMMON) $(SOURCES) -pthread -o $@
 
-$(M1_TEST_EXEC): $(EDGE_SOURCE) $(TEST_ROOT)/milestones/m1_cases.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
+$(ALL_TEST_EXEC): test/all_cases/all_cases.c Makefile
 	@mkdir -p $(@D)
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) -DM1_TESTS $(EDGE_SOURCE) $(TEST_ROOT)/milestones/m1_cases.c $(TEST_COMMON) $(SOURCES) -pthread -o $@
+	$(CC) $(UNIT_FLAGS) $< -o $@
 
-$(M2_TEST_EXEC) $(BONUS_EXEC): $(TEST_BIN)/%: $(TEST_ROOT)/milestones/%.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
+$(TEST_BIN)/integration/build_contracts: test/integration/build_contracts.c test/ui/test_ui.c $(TEST_HEADERS) Makefile
 	@mkdir -p $(@D)
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $< $(TEST_COMMON) $(SOURCES) -pthread -o $@
+	$(CC) $(UNIT_FLAGS) $(UNIT_INCLUDES) $< test/ui/test_ui.c -o $@
 
-$(ALL_TEST_EXEC): $(TEST_ROOT)/all_cases/all_cases.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
+$(TEST_BIN)/integration/preload: test/integration/preload.c Makefile
 	@mkdir -p $(@D)
-	$(CC) $(EDGE_TEST_CPPFLAGS) $(EDGE_TEST_CFLAGS) $< $(TEST_COMMON) $(SOURCES) -pthread -o $@
+	$(CC) $(UNIT_FLAGS) $< -o $@
 
-$(TEST_RUNNER): $(TEST_ROOT)/run_tests.c $(TEST_ROOT)/ui/test_ui.c $(TEST_HEADERS) Makefile
+$(TEST_BIN)/integration/workload: test/integration/workload.c Makefile
 	@mkdir -p $(@D)
-	$(CC) $(TEST_INCLUDES) $(EDGE_TEST_CFLAGS) $< $(TEST_ROOT)/ui/test_ui.c -o $@
+	$(CC) $(UNIT_FLAGS) -fPIE -pie $< -ldl -o $@
+
+$(CORRECTION_BINS): $(TEST_BIN)/correction/%: test/correction/%.c $(NAME) $(HEADERS) Makefile
+	@mkdir -p $(@D)
+	$(CC) -std=gnu11 -Wall -Wextra -O0 -g -fno-builtin -Iinc $< ./$(NAME) -pthread -Wl,-rpath,'$$ORIGIN/../../..' -o $@
+
+test-correction-build: $(CORRECTION_BINS)
+test-correction: test-correction-build
+	@failed=0; for binary in $(CORRECTION_BINS); do "./$$binary" || failed=1; done; exit $$failed
+
+test-clean:
+	@rm -rf $(TEST_OBJ)
+test-fclean: test-clean
+	@rm -rf $(TEST_BIN)
+	@rm -f $(TEST_EXEC)

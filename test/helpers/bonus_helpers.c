@@ -102,3 +102,6 @@ int bonus_valid_state(void)
     CHECK(small == g_data.small_heap_count);
     return 0;
 }
+
+/* Test fixture only: no allocator reset API is added. */
+void fixture_reset_flags(void) { g_data.initialized = 0; }

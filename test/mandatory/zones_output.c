@@ -1,20 +1,7 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   m1_cases.c                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/10/08 21:35:37 by donghank          #+#    #+#             */
-/*   Updated: 2026/10/08 21:35:37 by donghank         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-#include "m1_cases.h"
 #include "malloc.h"
 #include "test_helpers.h"
-#include <stddef.h>
-
+#include "bonus_helpers.h"
+#include "test_ui.h"
 #define CHECK(expr) do { if (!(expr)) { \
     ft_putstr_fd("  " __FILE__ ":", 2); \
     ft_print_unsigned_fd(__LINE__, 2); \
@@ -22,7 +9,7 @@
     return 1; } } while (0)
 
 
-static int m1_capacity(size_t size)
+static int zones_capacity(size_t size)
 {
     void *p[100];
     t_heap *first = NULL;
@@ -44,10 +31,10 @@ static int m1_capacity(size_t size)
     }
     return 0;
 }
-int m1_tiny_capacity(void) { return m1_capacity(TINY_BLOCK_SIZE); }
-int m1_small_capacity(void) { return m1_capacity(SMALL_BLOCK_SIZE); }
+int zones_tiny_capacity(void) { return zones_capacity(TINY_BLOCK_SIZE); }
+int zones_small_capacity(void) { return zones_capacity(SMALL_BLOCK_SIZE); }
 
-int m1_fragmentation(void)
+int zones_fragmentation(void)
 {
     void *p[4096], *q;
     t_heap *first;
@@ -82,7 +69,7 @@ int m1_fragmentation(void)
     return 0;
 }
 
-int m1_memmove(void)
+int zones_memmove(void)
 {
     unsigned char a[64], b[64];
     size_t i;
@@ -98,7 +85,7 @@ int m1_memmove(void)
     return 0;
 }
 
-static int m1_capture_function(char *output, size_t capacity, void (*display)(void))
+static int zones_capture_function(char *output, size_t capacity, void (*display)(void))
 {
     char path[] = "/tmp/malloc-output-XXXXXX";
     int fd, saved;
@@ -120,12 +107,12 @@ static int m1_capture_function(char *output, size_t capacity, void (*display)(vo
     return 0;
 }
 
-static int m1_capture(char *output, size_t capacity)
+static int zones_capture(char *output, size_t capacity)
 {
-    return m1_capture_function(output, capacity, show_alloc_mem);
+    return zones_capture_function(output, capacity, show_alloc_mem);
 }
 
-int m1_output_order(void)
+int zones_output_order(void)
 {
     void *p[3];
     t_heap *heaps[3], *tmp;
@@ -150,7 +137,7 @@ int m1_output_order(void)
         heaps[i]->next = i < 2 ? heaps[i + 1] : NULL;
     }
     g_data.heap_anchor = heaps[0];
-    CHECK(m1_capture(output, sizeof(output)) == 0);
+    CHECK(zones_capture(output, sizeof(output)) == 0);
     cursor = output;
     while ((cursor = find_text(cursor, "LARGE : 0x")) != NULL)
     {
@@ -171,14 +158,14 @@ int m1_output_order(void)
     return 0;
 }
 
-int m1_page_output(void)
+int zones_page_output(void)
 {
     char output[4096];
     const char *digits;
     uintptr_t page;
     long expected = sysconf(_SC_PAGESIZE);
     CHECK(expected > 0);
-    CHECK(m1_capture(output, sizeof(output)) == 0);
+    CHECK(zones_capture(output, sizeof(output)) == 0);
     digits = find_text(output, "Page size : ");
     CHECK(digits != NULL);
     digits += ft_strlen("Page size : ");
@@ -188,7 +175,7 @@ int m1_page_output(void)
 }
 
 /* Compare every printed allocation with the live payload and block metadata. */
-static int m1_verify_output(void **p, size_t count)
+static int zones_verify_output(void **p, size_t count)
 {
     char output[8192], *line, *next;
     const char *digits;
@@ -208,7 +195,7 @@ static int m1_verify_output(void **p, size_t count)
             expected_total += block->data_size;
             ++live;
         }
-    CHECK(m1_capture(output, sizeof(output)) == 0);
+    CHECK(zones_capture(output, sizeof(output)) == 0);
     for (line = output; *line; line = next)
     {
         next = line;
@@ -261,7 +248,7 @@ static int m1_verify_output(void **p, size_t count)
     return 0;
 }
 
-int m1_mixed_output(void)
+int zones_mixed_output(void)
 {
     void *p[7];
     size_t sizes[] = {17, 48, 64, TINY_BLOCK_SIZE + 1, SMALL_BLOCK_SIZE,
@@ -282,23 +269,23 @@ int m1_mixed_output(void)
         heaps[i]->next = i + 1 < n ? heaps[i + 1] : NULL;
     }
     g_data.heap_anchor = heaps[0];
-    CHECK(m1_verify_output(p, 7) == 0);
+    CHECK(zones_verify_output(p, 7) == 0);
     free(p[1]); p[1] = NULL; /* Free holes must not be printed or added to Total. */
     free(p[5]); p[5] = NULL; /* Verify output after a heap is unlinked. */
-    CHECK(m1_verify_output(p, 7) == 0);
+    CHECK(zones_verify_output(p, 7) == 0);
     for (i = 0; i < 7; ++i) free(p[i]);
     for (i = 0; i < 7; ++i) p[i] = NULL;
-    CHECK(m1_verify_output(p, 7) == 0);
+    CHECK(zones_verify_output(p, 7) == 0);
     return 0;
 }
 
-int m1_empty_output(void)
+int zones_empty_output(void)
 {
     CHECK(g_data.heap_anchor == NULL);
-    return m1_verify_output(NULL, 0);
+    return zones_verify_output(NULL, 0);
 }
 
-int m1_page_geometry(void)
+int zones_page_geometry(void)
 {
     size_t page = get_page_size(), i, aligned, expected;
     size_t sizes[] = {1, TINY_BLOCK_SIZE, TINY_BLOCK_SIZE + 1,
@@ -329,10 +316,16 @@ int m1_page_geometry(void)
     }
     CHECK(get_heap_size_from_block_size(LARGE, SIZE_MAX) == 0);
     CHECK(get_heap_size_from_block_size(LARGE, SIZE_MAX - sizeof(t_heap) - sizeof(t_block)) == 0);
-    CHECK(m1_capture_function(output, sizeof(output), show_alloc_mem_ex) == 0);
+    CHECK(zones_capture_function(output, sizeof(output), show_alloc_mem_ex) == 0);
     digits = find_text(output, "Page size : ");
     CHECK(digits != NULL);
     digits += ft_strlen("Page size : ");
     CHECK(parse_number(&digits, 10, &printed) && printed == page);
     return 0;
+}
+
+int main(int argc, char **argv) {
+ const char *names[] = {"zones_tiny_capacity", "zones_small_capacity", "zones_fragmentation", "zones_memmove", "zones_output_order", "zones_page_output", "zones_mixed_output", "zones_empty_output", "zones_page_geometry"};
+ int (*cases[])(void) = {zones_tiny_capacity, zones_small_capacity, zones_fragmentation, zones_memmove, zones_output_order, zones_page_output, zones_mixed_output, zones_empty_output, zones_page_geometry};
+ return bonus_run(argc, argv, names, cases, sizeof(cases)/sizeof(cases[0]));
 }
