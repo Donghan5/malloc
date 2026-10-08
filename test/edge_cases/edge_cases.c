@@ -256,6 +256,7 @@ static int diagnostics(void)
     close(fd[0]);
     CHECK(n > 0);
     output[n] = '\0';
+    ft_putstr_fd(output, 1);
     {
         const char *total = find_text(output, "Total : ");
         uintptr_t value;
@@ -292,6 +293,7 @@ static int diagnostics_address_order(void)
     close(fd[0]);
     CHECK(n > 0);
     output[n] = '\0';
+    ft_putstr_fd(output, 1);
     cursor = output;
     while ((cursor = find_text(cursor, "LARGE : ")) != NULL)
     {

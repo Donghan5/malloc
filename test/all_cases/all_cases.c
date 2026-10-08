@@ -19,7 +19,7 @@ int run_isolated(char *const argv[], int enabled)
 {
     char path[] = "/tmp/malloc-review-XXXXXX";
     char output[4096];
-    ssize_t n, i;
+    ssize_t n;
     int fd = mkstemp(path), status;
     pid_t child;
     if (fd < 0) return 1;
@@ -40,13 +40,14 @@ int run_isolated(char *const argv[], int enabled)
     }
     if (waitpid(child, &status, 0) != child) { close(fd); return 1; }
     if (lseek(fd, 0, SEEK_SET) < 0) { close(fd); return 1; }
-    n = read(fd, output, sizeof(output) - 1);
+    while ((n = read(fd, output, sizeof(output) - 1)) > 0)
+    {
+        output[n] = 0;
+        ft_putstr_fd(output, 1);
+    }
     close(fd);
     if (n < 0) return 1;
-    output[n] = 0;
-    for (i = 0; i < n && output[i] != '\n'; ++i) {}
-    if (status == 0) output[i] = 0;
-    ft_putstr_fd(output, 1); ft_putstr_fd("\n", 1);
+    ft_putstr_fd("\n", 1);
     return status != 0;
 }
 

@@ -68,8 +68,9 @@ are disabled.
 Runtime cases use a 10-second alarm, and the integrated runner uses a 20-second
 exec alarm. The dedicated M1 runner uses a 15-second external runtime limit and
 a 60-second limit for each build. Output is captured in an unlinked temporary
-file. The integrated display shows the first line on success and up to 4095 bytes
-on failure. M1 builds run in temporary copies of the project.
+file. Captured diagnostic output is replayed to the test screen after validation
+capture, and the integrated display streams the complete captured output on both
+success and failure. M1 builds run in temporary copies of the project.
 
 Allocator functions are renamed to `edge_malloc`, `edge_free`, and `edge_realloc`
 when linked, so libc's internal allocations do not enter the heap under test.

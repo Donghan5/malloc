@@ -37,6 +37,7 @@ int capture_end(int fd, int saved, char *output, size_t capacity)
     close(fd);
     if (n < 0 || (size_t)n == capacity - 1) return 1;
     output[n] = 0;
+    ft_putstr_fd(output, 1);
     return 0;
 }
 

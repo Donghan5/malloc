@@ -116,6 +116,7 @@ static int m1_capture_function(char *output, size_t capacity, void (*display)(vo
     close(fd);
     CHECK(n >= 0 && (size_t)n < capacity - 1);
     output[n] = 0;
+    ft_putstr_fd(output, 1);
     return 0;
 }
 
