@@ -97,14 +97,15 @@ TEST_COMMON = test/helpers/test_helpers.c test/helpers/bonus_helpers.c test/ui/t
 TEST_HEADERS = $(HEADERS) $(wildcard test/helpers/*.h test/ui/*.h)
 MANDATORY_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/mandatory/*.c))
 BONUS_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/bonus/*.c))
-INTEGRATION_BINS = $(addprefix $(TEST_BIN)/integration/,build_contracts preload workload)
+BUILD_CONTRACTS = $(TEST_BIN)/integration/build_contracts
+FAULT_PROBE = $(TEST_BIN)/integration/fault_probe
+EVAL_BINS = $(addprefix $(TEST_BIN)/eval/,test0 test1 test2)
 ALL_TEST_EXEC = $(TEST_BIN)/all_cases
-TEST_BINS = $(MANDATORY_BINS) $(BONUS_BINS) $(INTEGRATION_BINS) $(ALL_TEST_EXEC)
-CORRECTION_SOURCES = $(sort $(wildcard test/correction/test*.c))
-CORRECTION_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(CORRECTION_SOURCES))
-.PHONY: test test-all test-build test-mandatory test-bonus test-integration test-clean test-fclean test-correction test-correction-build
+TEST_BINS = $(MANDATORY_BINS) $(BONUS_BINS) $(BUILD_CONTRACTS) $(FAULT_PROBE) $(EVAL_BINS) $(ALL_TEST_EXEC)
+REPEATS ?= 1
+.PHONY: test test-build test-mandatory test-bonus test-eval test-diagnostic-build test-clean test-fclean
 
-test test-all: test-build
+test: test-build
 	./$(ALL_TEST_EXEC)
 
 test-build: $(TEST_BINS) $(NAME)
@@ -115,8 +116,19 @@ test-mandatory: $(MANDATORY_BINS) $(ALL_TEST_EXEC)
 test-bonus: $(BONUS_BINS) $(ALL_TEST_EXEC)
 	./$(ALL_TEST_EXEC) bonus
 
-test-integration: $(INTEGRATION_BINS) $(ALL_TEST_EXEC) $(NAME)
-	./$(ALL_TEST_EXEC) integration
+test-eval: $(NAME) $(EVAL_BINS) $(FAULT_PROBE)
+	sh test/integration/run.sh eval $(REPEATS)
+
+test-diagnostic-build: $(NAME) $(FAULT_PROBE)
+
+# correction 원본은 libc만 링크하며 실제 주입은 실행 시 수행한다.
+$(EVAL_BINS): $(TEST_BIN)/eval/%: test/correction/%.c $(HEADERS) Makefile
+	@mkdir -p $(@D)
+	$(CC) -std=gnu11 -Wall -Wextra -O0 -g -fno-builtin $< -o $@
+
+$(FAULT_PROBE): test/integration/fault_probe.c Makefile
+	@mkdir -p $(@D)
+	$(CC) $(UNIT_FLAGS) -fPIE -pie $< -ldl -o $@
 
 $(MANDATORY_BINS) $(BONUS_BINS): $(TEST_BIN)/%: test/%.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
 	@mkdir -p $(@D)
@@ -129,22 +141,6 @@ $(ALL_TEST_EXEC): test/all_cases/all_cases.c Makefile
 $(TEST_BIN)/integration/build_contracts: test/integration/build_contracts.c test/ui/test_ui.c $(TEST_HEADERS) Makefile
 	@mkdir -p $(@D)
 	$(CC) $(UNIT_FLAGS) $(UNIT_INCLUDES) $< test/ui/test_ui.c -o $@
-
-$(TEST_BIN)/integration/preload: test/integration/preload.c Makefile
-	@mkdir -p $(@D)
-	$(CC) $(UNIT_FLAGS) $< -o $@
-
-$(TEST_BIN)/integration/workload: test/integration/workload.c Makefile
-	@mkdir -p $(@D)
-	$(CC) $(UNIT_FLAGS) -fPIE -pie $< -ldl -o $@
-
-$(CORRECTION_BINS): $(TEST_BIN)/correction/%: test/correction/%.c $(NAME) $(HEADERS) Makefile
-	@mkdir -p $(@D)
-	$(CC) -std=gnu11 -Wall -Wextra -O0 -g -fno-builtin -Iinc $< ./$(NAME) -pthread -Wl,-rpath,'$$ORIGIN/../../..' -o $@
-
-test-correction-build: $(CORRECTION_BINS)
-test-correction: test-correction-build
-	@failed=0; for binary in $(CORRECTION_BINS); do "./$$binary" || failed=1; done; exit $$failed
 
 test-clean:
 	@rm -rf $(TEST_OBJ)

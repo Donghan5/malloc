@@ -45,16 +45,29 @@ static int run(const char *binary, const char *index, int enabled, int count)
 }
 int main(int argc,char **argv)
 {
- const char *bins[]={"mandatory/basic","mandatory/zones_output","mandatory/reuse","mandatory/heap_edges","mandatory/reclamation","bonus/coalescing","bonus/coalescing_edges","bonus/diagnostics","bonus/diagnostics_edges","bonus/concurrency","bonus/concurrency_edges","integration/build_contracts","integration/preload"};
+ const struct { const char *path, *group, *argument; int suite; } bins[]={
+  {"./test/bin/mandatory/basic","mandatory",NULL,1},
+  {"./test/bin/mandatory/zones_output","mandatory",NULL,1},
+  {"./test/bin/mandatory/heap_edges","mandatory",NULL,1},
+  {"./test/bin/mandatory/reclamation","mandatory",NULL,1},
+  {"./test/bin/bonus/coalescing","bonus",NULL,1},
+  {"./test/bin/bonus/coalescing_edges","bonus",NULL,1},
+  {"./test/bin/bonus/diagnostics","bonus",NULL,1},
+  {"./test/bin/bonus/diagnostics_edges","bonus",NULL,1},
+  {"./test/bin/bonus/concurrency","bonus",NULL,1},
+  {"./test/bin/bonus/concurrency_edges","bonus",NULL,1},
+  {"./test/bin/integration/build_contracts","integration",NULL,0},
+  {"./test/integration/run.sh","integration","eval",0}
+ };
  unsigned pass=0,total=0;
- if(argc>2 || (argc==2 && strcmp(argv[1],"mandatory") && strcmp(argv[1],"bonus") && strcmp(argv[1],"integration"))) return 2;
+ if(argc>2 || (argc==2 && strcmp(argv[1],"mandatory") && strcmp(argv[1],"bonus"))) return 2;
  for(size_t g=0;g<sizeof(bins)/sizeof(bins[0]);g++) {
-  char path[128]; snprintf(path,sizeof(path),"./test/bin/%s",bins[g]);
-  if(argc==2 && strncmp(bins[g],argv[1],strlen(argv[1]))) continue;
-  if(g>=11) { ++total; pass+=run(path,NULL,0,0)==0; continue; }
+  const char *path=bins[g].path;
+  if(argc==2 && strcmp(bins[g].group,argv[1])) continue;
+  if(!bins[g].suite) { ++total; pass+=run(path,bins[g].argument,0,0)==0; continue; }
   int n=run(path,NULL,0,1);
   if(n<0) { ++total; printf("FAIL suite count %s\n",path); continue; }
-  for(int mode=0;mode<(g<5?2:1);mode++) for(int i=0;i<n;i++) {
+  for(int mode=0;mode<(!strcmp(bins[g].group,"mandatory")?2:1);mode++) for(int i=0;i<n;i++) {
    char index[32]; snprintf(index,sizeof(index),"%d",i);
    if(mode) printf("[debug/scribble enabled]\n");
    ++total; pass+=run(path,index,mode,0)==0;

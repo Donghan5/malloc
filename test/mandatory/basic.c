@@ -177,7 +177,7 @@ static int split_threshold(void)
     init_block(block, 16 + minimum);
     tail = split_block(block, 16);
     CHECK(tail != NULL && tail->data_size == 16 && tail->is_free);
-    CHECK(tail->prev == block && block->next == tail);
+    CHECK(tail->prev == block && block->next == tail && tail->next == NULL);
     return 0;
 }
 

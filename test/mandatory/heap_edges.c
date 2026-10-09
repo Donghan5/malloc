@@ -4,14 +4,14 @@
 #include "test_ui.h"
 #define CHECK(x) do { if (!(x)) { ft_putstr_fd("Edge assertion: " #x "\n", 2); return 1; } } while (0)
 
-int heap_edge_small_heap_reuse(void)
+static int heap_reuse(t_heap_group group, size_t n)
 {
-    size_t i, n = TINY_BLOCK_SIZE + 16;
+    size_t i;
     unsigned char *p = malloc(n);
     t_heap *heap;
-    CHECK(p); heap = owner(p); CHECK(heap && heap->group == SMALL);
+    CHECK(p); heap = owner(p); CHECK(heap && heap->group == group);
     free(p);
-    CHECK(g_data.small_heap_count == 1);
+    CHECK((group == TINY ? g_data.tiny_heap_count : g_data.small_heap_count) == 1);
     for (i = 0; i < 100; ++i)
     {
         p = malloc(n); CHECK(p && owner(p) == heap);
@@ -20,6 +20,8 @@ int heap_edge_small_heap_reuse(void)
     }
     return 0;
 }
+static int tiny_heap_reuse(void) { return heap_reuse(TINY, 32); }
+static int small_heap_reuse(void) { return heap_reuse(SMALL, TINY_BLOCK_SIZE + 16); }
 
 int heap_edge_large_reclamation(void)
 {
@@ -52,7 +54,7 @@ int heap_edge_recovery_after_mapping_failure(void)
 }
 
 int main(int argc, char **argv) {
- const char *names[] = {"heap_edge_small_heap_reuse", "heap_edge_large_reclamation", "heap_edge_recovery_after_mapping_failure"};
- int (*cases[])(void) = {heap_edge_small_heap_reuse, heap_edge_large_reclamation, heap_edge_recovery_after_mapping_failure};
+ const char *names[] = {"tiny_heap_reuse", "small_heap_reuse", "heap_edge_large_reclamation", "heap_edge_recovery_after_mapping_failure"};
+ int (*cases[])(void) = {tiny_heap_reuse, small_heap_reuse, heap_edge_large_reclamation, heap_edge_recovery_after_mapping_failure};
  return bonus_run(argc, argv, names, cases, sizeof(cases)/sizeof(cases[0]));
 }
