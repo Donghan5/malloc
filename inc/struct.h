@@ -68,6 +68,7 @@ typedef struct s_malloc_data
 	int		debug;
 	int		initialized;
 	int		scribble;
+	size_t  page_size;
 }	t_malloc_data;
 
 #endif

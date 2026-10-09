@@ -103,7 +103,7 @@ EVAL_BINS = $(addprefix $(TEST_BIN)/eval/,test0 test1 test2)
 ALL_TEST_EXEC = $(TEST_BIN)/all_cases
 TEST_BINS = $(MANDATORY_BINS) $(BONUS_BINS) $(BUILD_CONTRACTS) $(FAULT_PROBE) $(EVAL_BINS) $(ALL_TEST_EXEC)
 REPEATS ?= 1
-.PHONY: test test-build test-mandatory test-bonus test-eval test-diagnostic-build test-clean test-fclean
+.PHONY: test test-build test-mandatory test-bonus test-eval test-free-quality test-diagnostic-build test-clean test-fclean
 
 test: test-build
 	./$(ALL_TEST_EXEC)
@@ -118,6 +118,9 @@ test-bonus: $(BONUS_BINS) $(ALL_TEST_EXEC)
 
 test-eval: $(NAME) $(EVAL_BINS) $(FAULT_PROBE)
 	sh test/integration/run.sh eval $(REPEATS)
+
+# correction 전체 기준을 함께 확인하며 free 품질 실패도 종료 코드로 전파한다.
+test-free-quality: test-eval
 
 test-diagnostic-build: $(NAME) $(FAULT_PROBE)
 

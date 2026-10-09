@@ -52,7 +52,7 @@ void	*start_malloc(size_t size)
 	
 	else
 	{
-		heap = find_free_block(&block, size, g_data.heap_anchor);
+		heap = find_free_block(&block, size, g_data.heap_anchor, group);
 		if (block)
 		{
 			if (split_block(block, size))

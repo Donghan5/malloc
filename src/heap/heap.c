@@ -15,14 +15,14 @@
 /*
 ** Description: Get the maximum mmap size allowed by the system.
 */
-static rlim_t get_max_mmap_size(void)
-{
-	struct rlimit rl;
-
-	if (getrlimit(RLIMIT_AS, &rl) == -1)
-		return (-1);
-	return (rl.rlim_cur);
-}
+// static rlim_t get_max_mmap_size(void)
+// {
+// 	struct rlimit rl;
+// 
+// 	if (getrlimit(RLIMIT_AS, &rl) == -1)
+// 		return (-1);
+// 	return (rl.rlim_cur);
+// }
 
 /*
 ** Description: Initialize a block structure.
@@ -61,7 +61,7 @@ t_heap    *create_new_heap(const t_heap_group group, const size_t size)
 	size_t	data_size;
 
     heap_size = get_heap_size_from_block_size(group, size);
-    if (!heap_size || heap_size > get_max_mmap_size())
+    if (!heap_size /* || heap_size > get_max_mmap_size() */)
         return (NULL);
 
     heap = (t_heap *)mmap(NULL, heap_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);

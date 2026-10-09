@@ -7,7 +7,8 @@ cd "$root"
 library="$root/libft_malloc.so"
 probe=./test/bin/integration/fault_probe
 mode=${1:-eval}
-case "$mode" in eval|binding|diag) ;; *) echo '사용법: run.sh eval [횟수] | binding | diag repeat|phases' >&2; exit 2;; esac
+[ "$mode" != diag ] || probe=${FAULT_PROBE:-$probe}
+case "$mode" in eval|binding|diag) ;; *) echo '사용법: run.sh eval [횟수] | binding | diag cold|repeat|phases|fullwrite' >&2; exit 2;; esac
 [ "$#" -le 2 ] || { echo 'FAIL: 인자가 너무 많습니다.' >&2; exit 2; }
 for command in timeout awk readelf sha256sum readlink mktemp; do
     command -v "$command" >/dev/null || { echo "FAIL: $command 명령이 없습니다." >&2; exit 2; }
@@ -39,8 +40,9 @@ inject() {
 printf '라이브러리: %s\n' "$(readlink -f "$library")"
 sha256sum "$library"
 if [ "$mode" = diag ]; then
-    case "${2:-repeat}" in
-        repeat) inject "EXPECTED_MALLOC_LIBRARY=$library" "$probe" repeat;;
+    section=${2:-repeat}
+    case "$section" in
+        cold|repeat|fullwrite) inject "EXPECTED_MALLOC_LIBRARY=$library" "$probe" "$section";;
         phases)
             failed=0
             for section in baseline free; do
@@ -48,7 +50,7 @@ if [ "$mode" = diag ]; then
                 if inject "EXPECTED_MALLOC_LIBRARY=$library" "$probe" "$section"; then :; else failed=1; fi
             done
             exit "$failed";;
-        *) echo 'FAIL: 진단 모드는 repeat 또는 phases입니다.' >&2; exit 2;;
+        *) echo 'FAIL: 진단 모드는 cold, repeat, phases 또는 fullwrite입니다.' >&2; exit 2;;
     esac
     exit 0
 fi

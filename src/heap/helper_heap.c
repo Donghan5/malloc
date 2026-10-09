@@ -17,10 +17,13 @@ size_t  get_page_size(void)
 {
     long    result;
 
+    if (g_data.page_size)
+            return (g_data.page_size);
     result = sysconf(_SC_PAGESIZE);
     if (result <=  0)
         return (0);
-    return ((size_t)result);
+    g_data.page_size = (size_t)result;
+    return (g_data.page_size);
 }
 
 static size_t	round_up_to_page_size(size_t size)
