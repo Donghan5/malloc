@@ -100,10 +100,11 @@ BONUS_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/bonus/*.c))
 BUILD_CONTRACTS = $(TEST_BIN)/integration/build_contracts
 FAULT_PROBE = $(TEST_BIN)/integration/fault_probe
 EVAL_BINS = $(addprefix $(TEST_BIN)/eval/,test0 test1 test2)
+CORRECTION_BINS = $(patsubst test/correction/%.c,$(TEST_BIN)/correction/%,$(wildcard test/correction/test*.c))
 ALL_TEST_EXEC = $(TEST_BIN)/all_cases
 TEST_BINS = $(MANDATORY_BINS) $(BONUS_BINS) $(BUILD_CONTRACTS) $(FAULT_PROBE) $(EVAL_BINS) $(ALL_TEST_EXEC)
 REPEATS ?= 1
-.PHONY: test test-build test-mandatory test-bonus test-eval test-free-quality test-diagnostic-build test-clean test-fclean
+.PHONY: test test-build test-mandatory test-bonus test-eval test-free-quality test_correction test-correction test-diagnostic-build test-clean test-fclean
 
 test: test-build
 	./$(ALL_TEST_EXEC)
@@ -121,6 +122,24 @@ test-eval: $(NAME) $(EVAL_BINS) $(FAULT_PROBE)
 
 # correction 전체 기준을 함께 확인하며 free 품질 실패도 종료 코드로 전파한다.
 test-free-quality: test-eval
+
+# 기능 실행용 직접 링크 검사. 페이지 품질 평가는 test-free-quality를 사용한다.
+test_correction: $(CORRECTION_BINS)
+	@ulimit -c 0; failed=0; \
+	for binary in $(CORRECTION_BINS); do \
+		echo "실행: $$binary"; \
+		if timeout --signal=TERM --kill-after=2s 15s ./$$binary; then \
+			echo "정상 종료: $$binary"; \
+		else \
+			status=$$?; echo "실행 실패: $$binary (종료 코드 $$status)"; failed=1; \
+		fi; \
+	done; exit $$failed
+
+test-correction: test_correction
+
+$(CORRECTION_BINS): $(TEST_BIN)/correction/%: test/correction/%.c $(HEADERS) $(NAME) Makefile
+	@mkdir -p $(@D)
+	$(CC) -std=gnu11 -Wall -Wextra -O0 -g -fno-builtin $< -Iinc $(abspath $(NAME)) -pthread -o $@
 
 test-diagnostic-build: $(NAME) $(FAULT_PROBE)
 
