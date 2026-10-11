@@ -6,7 +6,7 @@
 /*   By: donghank <donghank@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/08 21:35:37 by donghank          #+#    #+#             */
-/*   Updated: 2026/10/08 21:35:37 by donghank         ###   ########.fr       */
+/*   Updated: 2026/10/11 17:55:46 by donghank         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,7 +67,8 @@ void	init_debug_flags(void);
 ** src/malloc.c, free.c, realloc.c
 */
 void	*start_malloc(size_t size);
-void    start_free(void *ptr);
+//trial
+void    start_free(void *ptr);    
 void    *start_realloc(void *ptr, size_t size);
 
 #endif

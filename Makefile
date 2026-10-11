@@ -127,11 +127,11 @@ test-free-quality: test-eval
 test_correction: $(CORRECTION_BINS)
 	@ulimit -c 0; failed=0; \
 	for binary in $(CORRECTION_BINS); do \
-		echo "실행: $$binary"; \
+		echo "Execute: $$binary"; \
 		if timeout --signal=TERM --kill-after=2s 15s ./$$binary; then \
-			echo "정상 종료: $$binary"; \
+			echo "Exit with success: $$binary"; \
 		else \
-			status=$$?; echo "실행 실패: $$binary (종료 코드 $$status)"; failed=1; \
+			status=$$?; echo "Execute failed: $$binary (exit code $$status)"; failed=1; \
 		fi; \
 	done; exit $$failed
 
