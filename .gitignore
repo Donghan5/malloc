@@ -10,3 +10,5 @@ libft_malloc_x86_64_Linux.so
 /test/codex.md
 /test/core
 /test/core.*
+
+test-free-qualify-repeat-20.txt
