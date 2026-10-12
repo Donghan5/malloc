@@ -68,11 +68,9 @@ t_block *split_block(t_block *block, size_t size)
     if (block->data_size - size < sizeof(t_block) + 16)
         return (NULL);
     
-    // --- calculate new block position --- //
     t_block *new_block;
     new_block = BLOCK_SHIFT(block) + size;
 
-    // --- initialize new block --- //
     init_block(new_block, block->data_size - size - sizeof(t_block));
     new_block->is_free = true;
     new_block->prev = block;
@@ -81,13 +79,11 @@ t_block *split_block(t_block *block, size_t size)
         block->next->prev = new_block;
     block->next = new_block;
     
-    // --- update size of original block (data_size to size) --- //
     block->data_size = size;
     
     return (new_block);
 }
 
-// --- coalesce functions --- //
 size_t    coalesce_block(t_block *block)
 {
     t_block *next_block;
@@ -98,7 +94,6 @@ size_t    coalesce_block(t_block *block)
     prev_block = block->prev;
     coalesce_count = 0;
     
-    // --- coalesce with next block ---
     while (next_block && next_block->is_free == true \
         && block->is_free == true)
     {
@@ -109,7 +104,6 @@ size_t    coalesce_block(t_block *block)
         next_block = block->next;
         coalesce_count += 1;
     }
-    // --- coalesce with prev block ---
     while (prev_block && prev_block->is_free == true \
         && block->is_free == true)
     {

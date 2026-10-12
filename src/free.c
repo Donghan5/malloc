@@ -59,7 +59,6 @@ static void	debug_free(void *ptr)
 {
 	if (g_data.debug)
 	{
-		// from have to be like free(memory address)
 		ft_putstr_fd("[MALLOC] ", 1);
 		ft_putstr_fd("free", 1);
 		ft_putstr_fd("(", 1);
@@ -74,7 +73,6 @@ static void	debug_free(void *ptr)
  * Parameters:
  *   - ptr: Pointer to the memory to be freed
  */
-
 void	free(void *ptr)
 {
 	pthread_mutex_lock(&g_malloc_mutex);
