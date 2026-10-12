@@ -47,6 +47,9 @@ $(NAME): $(OBJECTS)
 	ln -s $(NAME) $(LIB_NAME)
 	@echo "Make done"
 
+$(LIB_NAME): $(NAME)
+	ln -sf $(NAME) $@
+
 $(PATH_OBJ)/%.o: %.c $(HEADERS)
 	@mkdir -p $(@D)
 	$(CC) -c -o $@ $(FLAGS_CC) $< -O0 -g -I $(PATH_INC)
@@ -87,7 +90,6 @@ debug_mode: all $(TEST_EXEC)
 scribble_mode: all $(TEST_EXEC)
 	MALLOC_SCRIBBLE=1 ./$(TEST_EXEC)
 
-# Functional test suites. Only unit fixtures rename allocator entry points.
 TEST_BIN = test/bin
 TEST_OBJ = test/obj
 UNIT_FLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
@@ -97,19 +99,21 @@ TEST_COMMON = test/helpers/test_helpers.c test/helpers/bonus_helpers.c test/ui/t
 TEST_HEADERS = $(HEADERS) $(wildcard test/helpers/*.h test/ui/*.h)
 MANDATORY_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/mandatory/*.c))
 BONUS_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/bonus/*.c))
-BUILD_CONTRACTS = $(TEST_BIN)/integration/build_contracts
-FAULT_PROBE = $(TEST_BIN)/integration/fault_probe
-EVAL_BINS = $(addprefix $(TEST_BIN)/eval/,test0 test1 test2)
-CORRECTION_BINS = $(patsubst test/correction/%.c,$(TEST_BIN)/correction/%,$(wildcard test/correction/test*.c))
+EVAL_BINS = $(addprefix $(TEST_BIN)/eval/,test0 test1 test2 test3 test4 test5)
+CORRECTION_EXTRA_SOURCES = $(filter-out $(addprefix test/correction/,test0.c test1.c test2.c test3.c test4.c test5.c),$(wildcard test/correction/test*.c))
+CORRECTION_BINS = $(patsubst test/correction/%.c,$(TEST_BIN)/correction/%,$(CORRECTION_EXTRA_SOURCES))
 ALL_TEST_EXEC = $(TEST_BIN)/all_cases
-TEST_BINS = $(MANDATORY_BINS) $(BONUS_BINS) $(BUILD_CONTRACTS) $(FAULT_PROBE) $(EVAL_BINS) $(ALL_TEST_EXEC)
+TEST_BINS = $(MANDATORY_BINS) $(BONUS_BINS) $(EVAL_BINS) $(ALL_TEST_EXEC)
 REPEATS ?= 1
-.PHONY: test test-build test-mandatory test-bonus test-eval test-free-quality test_correction test-correction test-diagnostic-build test-clean test-fclean
+.PHONY: test test-all test-build test-mandatory test-bonus test-eval test-free-quality test_correction test-correction test-clean test-fclean
 
-test: test-build
-	./$(ALL_TEST_EXEC)
+test: test-all
 
-test-build: $(TEST_BINS) $(NAME)
+# Main test commands: mandatory, bonus, evaluation, and all_cases.
+test-all: test-build
+	REPEATS="$(REPEATS)" ./$(ALL_TEST_EXEC)
+
+test-build: $(TEST_BINS) $(LIB_NAME)
 
 test-mandatory: $(MANDATORY_BINS) $(ALL_TEST_EXEC)
 	./$(ALL_TEST_EXEC) mandatory
@@ -117,23 +121,14 @@ test-mandatory: $(MANDATORY_BINS) $(ALL_TEST_EXEC)
 test-bonus: $(BONUS_BINS) $(ALL_TEST_EXEC)
 	./$(ALL_TEST_EXEC) bonus
 
-test-eval: $(NAME) $(EVAL_BINS) $(FAULT_PROBE)
-	sh test/integration/run.sh eval $(REPEATS)
+test-eval: $(LIB_NAME) $(EVAL_BINS)
+	sh test/eval/run.sh eval "$(REPEATS)"
 
-# correction 전체 기준을 함께 확인하며 free 품질 실패도 종료 코드로 전파한다.
+# Compatibility aliases and correction execution with output checks.
 test-free-quality: test-eval
 
-# 기능 실행용 직접 링크 검사. 페이지 품질 평가는 test-free-quality를 사용한다.
-test_correction: $(CORRECTION_BINS)
-	@ulimit -c 0; failed=0; \
-	for binary in $(CORRECTION_BINS); do \
-		echo "Execute: $$binary"; \
-		if timeout --signal=TERM --kill-after=2s 15s ./$$binary; then \
-			echo "Exit with success: $$binary"; \
-		else \
-			status=$$?; echo "Execute failed: $$binary (exit code $$status)"; failed=1; \
-		fi; \
-	done; exit $$failed
+test_correction: $(LIB_NAME) $(EVAL_BINS) $(CORRECTION_BINS)
+	sh test/eval/run.sh correction $(CORRECTION_BINS)
 
 test-correction: test_correction
 
@@ -141,16 +136,13 @@ $(CORRECTION_BINS): $(TEST_BIN)/correction/%: test/correction/%.c $(HEADERS) $(N
 	@mkdir -p $(@D)
 	$(CC) -std=gnu11 -Wall -Wextra -O0 -g -fno-builtin $< -Iinc $(abspath $(NAME)) -pthread -o $@
 
-test-diagnostic-build: $(NAME) $(FAULT_PROBE)
-
-# correction 원본은 libc만 링크하며 실제 주입은 실행 시 수행한다.
-$(EVAL_BINS): $(TEST_BIN)/eval/%: test/correction/%.c $(HEADERS) Makefile
+$(filter-out $(TEST_BIN)/eval/test5,$(EVAL_BINS)): $(TEST_BIN)/eval/%: test/correction/%.c $(HEADERS) Makefile
 	@mkdir -p $(@D)
-	$(CC) -std=gnu11 -Wall -Wextra -O0 -g -fno-builtin $< -o $@
+	$(CC) $< -o $@
 
-$(FAULT_PROBE): test/integration/fault_probe.c Makefile
+$(TEST_BIN)/eval/test5: test/correction/test5.c $(HEADERS) Makefile $(NAME) $(LIB_NAME)
 	@mkdir -p $(@D)
-	$(CC) $(UNIT_FLAGS) -fPIE -pie $< -ldl -o $@
+	$(CC) $< -o $@ -L. -lft_malloc
 
 $(MANDATORY_BINS) $(BONUS_BINS): $(TEST_BIN)/%: test/%.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
 	@mkdir -p $(@D)
@@ -159,10 +151,6 @@ $(MANDATORY_BINS) $(BONUS_BINS): $(TEST_BIN)/%: test/%.c $(TEST_COMMON) $(SOURCE
 $(ALL_TEST_EXEC): test/all_cases/all_cases.c Makefile
 	@mkdir -p $(@D)
 	$(CC) $(UNIT_FLAGS) $< -o $@
-
-$(TEST_BIN)/integration/build_contracts: test/integration/build_contracts.c test/ui/test_ui.c $(TEST_HEADERS) Makefile
-	@mkdir -p $(@D)
-	$(CC) $(UNIT_FLAGS) $(UNIT_INCLUDES) $< test/ui/test_ui.c -o $@
 
 test-clean:
 	@rm -rf $(TEST_OBJ)

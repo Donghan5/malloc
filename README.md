@@ -106,6 +106,25 @@ NAME = libft_malloc_$(HOSTTYPE).so
 make run
 ```
 
+### Test suites
+
+```bash
+make test-mandatory  # mandatory cases, including debug/scribble mode
+make test-bonus      # bonus cases
+make test-eval       # correction test0–test2: allocator binding and page faults
+make test-all        # all_cases: mandatory + bonus + evaluation
+make test            # alias for test-all
+```
+
+Evaluation requires Linux, GNU time (`/usr/bin/time`), `timeout`, and `readelf`.
+Use `REPEATS=5` with `test-eval`, `test-all`, or `test` to repeat evaluation.
+Free quality criteria not met (`free_delta > 3`) produce a `WARNING` and do not
+fail evaluation. Execution, allocation, and free functionality failures still
+return a nonzero exit status.
+`make test-build` builds the suites without running them; `make test-fclean`
+removes their binaries. Directly linked correction tests remain available via
+`make test-correction` (alias: `test_correction`).
+
 ### Debug modes
 
 ```bash

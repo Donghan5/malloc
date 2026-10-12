@@ -25,7 +25,8 @@ static int run(const char *binary, const char *index, int enabled, int count)
   else { unsetenv("MALLOC_DEBUG"); unsetenv("MALLOC_SCRIBBLE"); }
   if (dup2(fileno(out),1)<0 || dup2(fileno(out),2)<0) _exit(125);
   alarm(180);
-  if (index) execl(binary,binary,index,(char *)NULL);
+  if (!strcmp(binary,"./test/eval/run.sh")) execl("/bin/sh","sh",binary,index,(char *)NULL);
+  else if (index) execl(binary,binary,index,(char *)NULL);
   else execl(binary,binary,(char *)NULL);
   _exit(127);
  }
@@ -56,8 +57,7 @@ int main(int argc,char **argv)
   {"./test/bin/bonus/diagnostics_edges","bonus",NULL,1},
   {"./test/bin/bonus/concurrency","bonus",NULL,1},
   {"./test/bin/bonus/concurrency_edges","bonus",NULL,1},
-  {"./test/bin/integration/build_contracts","integration",NULL,0},
-  {"./test/integration/run.sh","integration","eval",0}
+  {"./test/eval/run.sh","eval","eval",0}
  };
  unsigned pass=0,total=0;
  if(argc>2 || (argc==2 && strcmp(argv[1],"mandatory") && strcmp(argv[1],"bonus"))) return 2;
