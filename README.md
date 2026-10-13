@@ -187,6 +187,10 @@ pthread_mutex_t g_malloc_mutex;  // protects all allocator state
 
 ---
 
+## Free Fragement (Recently added)
+Coalescing of free blocks is implemented in `coalesce_block()`, which merges adjacent free blocks into a single larger block. This reduces fragmentation and improves the efficiency of future allocations.
+
+---
 ## Author
 
 donghank — 42 School project
