@@ -10,5 +10,6 @@ libft_malloc_x86_64_Linux.so
 /test/codex.md
 /test/core
 /test/core.*
+/test/evidence
 
 free-repeat-30*.txt

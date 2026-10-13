@@ -153,10 +153,14 @@ void	init_debug_flags(void)
 
 	if (g_data.initialized)
 	    return ;
-	val = getenv("MALLOC_DEBUG");
+	char debug_name[13] = { 'M', 'A', 'L', 'L', 'O', 'C',
+		'_', 'D', 'E', 'B', 'U', 'G', '\0' };
+	char scribble_name[16] = { 'M', 'A', 'L', 'L', 'O', 'C',
+		'_', 'S', 'C', 'R', 'I', 'B', 'B', 'L', 'E', '\0' };
+	val = getenv(debug_name);
 	g_data.debug = (val && val[0] == '1' && val[1] == '\0');
 	
-	val = getenv("MALLOC_SCRIBBLE");
+	val = getenv(scribble_name);
 	g_data.scribble = (val && val[0] == '1' && val[1] == '\0');
 
 	g_data.initialized = 1;

@@ -1,6 +1,4 @@
-ifeq ($(HOSTTYPE),)
-	HOSTTYPE := $(shell uname -m)_$(shell uname -s)
-endif
+HOSTTYPE := $(shell uname -m)_$(shell uname -s)
 
 # **************************************************************************** #
 # FILES             														   #
