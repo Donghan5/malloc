@@ -29,6 +29,8 @@ LIB_NAME = libft_malloc.so
 CC = gcc
 
 FLAGS_CC = -Wall -Wextra -Werror -fPIC
+ALLOCATOR_FLAGS = $(FLAGS_CC) -O0 -g
+ALLOCATOR_INCLUDES = -I $(PATH_INC)
 FLAGS_LIB = -shared
 
 # **************************************************************************** #
@@ -48,9 +50,9 @@ $(NAME): $(OBJECTS)
 $(LIB_NAME): $(NAME)
 	ln -sf $(NAME) $@
 
-$(PATH_OBJ)/%.o: %.c $(HEADERS)
+$(PATH_OBJ)/%.o: %.c $(HEADERS) Makefile
 	@mkdir -p $(@D)
-	$(CC) -c -o $@ $(FLAGS_CC) $< -O0 -g -I $(PATH_INC)
+	$(CC) -c -o $@ $(ALLOCATOR_FLAGS) $(ALLOCATOR_INCLUDES) $<
 
 clean:
 	@rm -rf $(PATH_OBJ)
@@ -63,7 +65,9 @@ fclean: clean test-fclean
 setup:
 	./setup.sh
 
-re: fclean $(NAME)
+re:
+	$(MAKE) fclean
+	$(MAKE) all
 
 TEST_EXEC = test_malloc
 
@@ -94,6 +98,8 @@ UNIT_FLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
 UNIT_INCLUDES = -Iinc -Itest/helpers -Itest/ui
 UNIT_RENAMES = -Dmalloc=edge_malloc -Dfree=edge_free -Drealloc=edge_realloc
 TEST_COMMON = test/helpers/test_helpers.c test/helpers/bonus_helpers.c test/ui/test_ui.c
+EDGE_OBJECTS = $(SOURCES:%.c=$(TEST_OBJ)/edge/%.o)
+TEST_COMMON_OBJECTS = $(TEST_COMMON:%.c=$(TEST_OBJ)/fixture/%.o)
 TEST_HEADERS = $(HEADERS) $(wildcard test/helpers/*.h test/ui/*.h)
 MANDATORY_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/mandatory/*.c))
 BONUS_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/bonus/*.c))
@@ -142,9 +148,20 @@ $(TEST_BIN)/eval/test5: test/correction/test5.c $(HEADERS) Makefile $(NAME) $(LI
 	@mkdir -p $(@D)
 	$(CC) $< -o $@ -L. -lft_malloc
 
-$(MANDATORY_BINS) $(BONUS_BINS): $(TEST_BIN)/%: test/%.c $(TEST_COMMON) $(SOURCES) $(TEST_HEADERS) Makefile
+$(TEST_OBJ)/edge/%.o: %.c $(HEADERS) Makefile
 	@mkdir -p $(@D)
-	$(CC) $(UNIT_FLAGS) $(UNIT_INCLUDES) $(UNIT_RENAMES) $< $(TEST_COMMON) $(SOURCES) -pthread -o $@
+	$(CC) -c -o $@ $(ALLOCATOR_FLAGS) $(ALLOCATOR_INCLUDES) $(UNIT_RENAMES) $<
+
+$(TEST_OBJ)/fixture/%.o: %.c $(TEST_HEADERS) Makefile
+	@mkdir -p $(@D)
+	$(CC) $(UNIT_FLAGS) $(UNIT_INCLUDES) $(UNIT_RENAMES) -c $< -o $@
+
+$(MANDATORY_BINS) $(BONUS_BINS): $(TEST_BIN)/%: $(TEST_OBJ)/fixture/test/%.o $(TEST_COMMON_OBJECTS) $(EDGE_OBJECTS) Makefile
+	@mkdir -p $(@D)
+	$(CC) $(filter %.o,$^) -pthread -o $@
+
+# Keep fixture objects for incremental builds instead of treating them as intermediates.
+.SECONDARY: $(TEST_COMMON_OBJECTS) $(patsubst $(TEST_BIN)/%,$(TEST_OBJ)/fixture/test/%.o,$(MANDATORY_BINS) $(BONUS_BINS))
 
 $(ALL_TEST_EXEC): test/all_cases/all_cases.c Makefile
 	@mkdir -p $(@D)
