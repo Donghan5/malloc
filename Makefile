@@ -1,4 +1,6 @@
+ifeq ($(strip $(HOSTTYPE)),)
 HOSTTYPE := $(shell uname -m)_$(shell uname -s)
+endif
 
 # **************************************************************************** #
 # FILES             														   #
@@ -12,7 +14,7 @@ PATH_SRC = src
 SOURCES += src/block/block.c src/block/init_block.c
 SOURCES += src/heap/get_heap.c src/heap/heap.c src/heap/helper_heap.c
 SOURCES += src/tools/show_alloc_mem.c src/tools/tools.c src/tools/pointer.c
-SOURCES += src/free.c src/malloc.c src/realloc.c
+SOURCES += src/free.c src/malloc.c src/realloc.c src/calloc.c
 
 OBJECTS = $(SOURCES:%.c=$(PATH_OBJ)/%.o)
 
@@ -37,9 +39,9 @@ FLAGS_LIB = -shared
 # COMMANDS  		    													   #
 # **************************************************************************** #
 
-.PHONY: all clean fclean re setup
+.PHONY: all clean fclean re
 
-all: setup $(NAME)
+all: $(LIB_NAME)
 
 $(NAME): $(OBJECTS)
 	$(CC) $(FLAGS_LIB) -o $@ $(OBJECTS)
@@ -58,117 +60,36 @@ clean:
 	@rm -rf $(PATH_OBJ)
 	@echo "Clean done"
 
-fclean: clean test-fclean
-	@rm -f $(NAME) $(LIB_NAME) $(TEST_EXEC) $(TEST_BINS)
+fclean: clean
+	@rm -f $(NAME) $(LIB_NAME)
 	@echo "Fclean done"
-
-setup:
-	./setup.sh
 
 re:
 	$(MAKE) fclean
 	$(MAKE) all
 
-TEST_EXEC = test_malloc
+# Linux tests: build and run only in isolated test workspaces.
+TEST_TARGETS = test0 test1 test2 test3 test4 test5 test-edge test-bonus
+.PHONY: $(TEST_TARGETS) test check help
+$(TEST_TARGETS):
+	@bash test/eval/runner.sh $@
 
-# TESTING RULES
+test:
+	@sh test/eval/run.sh
 
-.PHONY: run $(TEST_EXEC)
+check:
+	@bash test/eval/check_runner.sh
 
-run: all $(TEST_EXEC)
-	./$(TEST_EXEC)
-	@echo "--- Test finished ---"
-
-$(TEST_EXEC): main.c $(NAME)
-	$(CC) main.c -o $(TEST_EXEC) -I $(PATH_INC) ./$(NAME) -lpthread
-
-valgrind: all $(TEST_EXEC)
-	valgrind --soname-synonyms=somalloc=libft_malloc_x86_64_Linux.so ./$(TEST_EXEC)
-	@echo "--- Valgrind finished ---"
-
-debug_mode: all $(TEST_EXEC)
-	MALLOC_DEBUG=1 ./$(TEST_EXEC)
-
-scribble_mode: all $(TEST_EXEC)
-	MALLOC_SCRIBBLE=1 ./$(TEST_EXEC)
-
-TEST_BIN = test/bin
-TEST_OBJ = test/obj
-UNIT_FLAGS = -std=gnu11 -Wall -Wextra -Werror -O0 -g -fno-builtin
-UNIT_INCLUDES = -Iinc -Itest/helpers -Itest/ui
-UNIT_RENAMES = -Dmalloc=edge_malloc -Dfree=edge_free -Drealloc=edge_realloc
-TEST_COMMON = test/helpers/test_helpers.c test/helpers/bonus_helpers.c test/ui/test_ui.c
-EDGE_OBJECTS = $(SOURCES:%.c=$(TEST_OBJ)/edge/%.o)
-TEST_COMMON_OBJECTS = $(TEST_COMMON:%.c=$(TEST_OBJ)/fixture/%.o)
-TEST_HEADERS = $(HEADERS) $(wildcard test/helpers/*.h test/ui/*.h)
-MANDATORY_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/mandatory/*.c))
-BONUS_BINS = $(patsubst test/%.c,$(TEST_BIN)/%,$(wildcard test/bonus/*.c))
-EVAL_BINS = $(addprefix $(TEST_BIN)/eval/,test0 test1 test2 test3 test4 test5)
-CORRECTION_EXTRA_SOURCES = $(filter-out $(addprefix test/correction/,test0.c test1.c test2.c test3.c test4.c test5.c),$(wildcard test/correction/test*.c))
-CORRECTION_BINS = $(patsubst test/correction/%.c,$(TEST_BIN)/correction/%,$(CORRECTION_EXTRA_SOURCES))
-ALL_TEST_EXEC = $(TEST_BIN)/all_cases
-TEST_BINS = $(MANDATORY_BINS) $(BONUS_BINS) $(EVAL_BINS) $(ALL_TEST_EXEC)
-REPEATS ?= 1
-.PHONY: test test-all test-build test-mandatory test-bonus test-eval test-free-quality test_correction test-correction test-clean test-fclean
-
-test: test-all
-
-# Main test commands: mandatory, bonus, evaluation, and all_cases.
-test-all: test-build
-	REPEATS="$(REPEATS)" ./$(ALL_TEST_EXEC)
-
-test-build: $(TEST_BINS) $(LIB_NAME)
-
-test-mandatory: $(MANDATORY_BINS) $(ALL_TEST_EXEC)
-	./$(ALL_TEST_EXEC) mandatory
-
-test-bonus: $(BONUS_BINS) $(ALL_TEST_EXEC)
-	./$(ALL_TEST_EXEC) bonus
-
-test-eval: $(LIB_NAME) $(EVAL_BINS)
-	sh test/eval/run.sh eval "$(REPEATS)"
-
-# Compatibility aliases and correction execution with output checks.
-test-free-quality: test-eval
-
-test_correction: $(LIB_NAME) $(EVAL_BINS) $(CORRECTION_BINS)
-	sh test/eval/run.sh correction $(CORRECTION_BINS)
-
-test-correction: test_correction
-
-$(CORRECTION_BINS): $(TEST_BIN)/correction/%: test/correction/%.c $(HEADERS) $(NAME) Makefile
-	@mkdir -p $(@D)
-	$(CC) -std=gnu11 -Wall -Wextra -O0 -g -fno-builtin $< -Iinc $(abspath $(NAME)) -pthread -o $@
-
-$(filter-out $(TEST_BIN)/eval/test5,$(EVAL_BINS)): $(TEST_BIN)/eval/%: test/correction/%.c $(HEADERS) Makefile
-	@mkdir -p $(@D)
-	$(CC) $< -o $@
-
-$(TEST_BIN)/eval/test5: test/correction/test5.c $(HEADERS) Makefile $(NAME) $(LIB_NAME)
-	@mkdir -p $(@D)
-	$(CC) $< -o $@ -L. -lft_malloc
-
-$(TEST_OBJ)/edge/%.o: %.c $(HEADERS) Makefile
-	@mkdir -p $(@D)
-	$(CC) -c -o $@ $(ALLOCATOR_FLAGS) $(ALLOCATOR_INCLUDES) $(UNIT_RENAMES) $<
-
-$(TEST_OBJ)/fixture/%.o: %.c $(TEST_HEADERS) Makefile
-	@mkdir -p $(@D)
-	$(CC) $(UNIT_FLAGS) $(UNIT_INCLUDES) $(UNIT_RENAMES) -c $< -o $@
-
-$(MANDATORY_BINS) $(BONUS_BINS): $(TEST_BIN)/%: $(TEST_OBJ)/fixture/test/%.o $(TEST_COMMON_OBJECTS) $(EDGE_OBJECTS) Makefile
-	@mkdir -p $(@D)
-	$(CC) $(filter %.o,$^) -pthread -o $@
-
-# Keep fixture objects for incremental builds instead of treating them as intermediates.
-.SECONDARY: $(TEST_COMMON_OBJECTS) $(patsubst $(TEST_BIN)/%,$(TEST_OBJ)/fixture/test/%.o,$(MANDATORY_BINS) $(BONUS_BINS))
-
-$(ALL_TEST_EXEC): test/all_cases/all_cases.c Makefile
-	@mkdir -p $(@D)
-	$(CC) $(UNIT_FLAGS) $< -o $@
-
-test-clean:
-	@rm -rf $(TEST_OBJ)
-test-fclean: test-clean
-	@rm -rf $(TEST_BIN)
-	@rm -f $(TEST_EXEC)
+help:
+	@printf '%s\n' 'Build:' '  make / clean / fclean / re — allocator library' '' 'Mandatory:' \
+	  '  test0      baseline: system/user malloc raw values' \
+	  '  test1      allocation overhead / score interpretation; single-zone capacity and page size' \
+	  '  test2      free function U2<U1 and quality U2-U0<=10' \
+	  '  test3      realloc data preservation' \
+	  '  test4      show_alloc_mem addresses, ranges and total' \
+	  '  test5      alignment (ABI check; attachment coverage reported)' \
+	  '  test-edge  O01-O04 additional overflow checks (outside official score)' \
+	  '' 'Bonus:' '  test-bonus B01-B04 and C01-C08 calloc bonus checks' \
+	  '' 'Test utilities:' \
+	  '  test       run the complete evaluation once' \
+	  '  check      run the shell runner fixtures only'

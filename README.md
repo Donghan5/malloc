@@ -82,7 +82,7 @@ malloc/
 │       ├── show_alloc_mem.c  # show_alloc_mem, show_alloc_mem_ex
 │       ├── tools.c           # ft_memset, ft_memmove, ft_putstr_fd, print_memory_address_portable, …
 │       └── pointer.c         # search_pointer
-└── main.c              # Test harness
+└── test/               # Linux evaluation runner and official attachments
 ```
 
 ---
@@ -92,78 +92,38 @@ malloc/
 ```bash
 make          # builds libft_malloc_<arch>_<OS>.so + symlink libft_malloc.so
 make clean    # remove object files
-make fclean   # remove objects, library and test artifacts
+make fclean   # remove allocator objects and library
 make re       # finish fclean, then recursively run all (also with -j)
 ```
 
 The library name embeds the host type automatically:
 
 ```makefile
+ifeq ($(strip $(HOSTTYPE)),)
 HOSTTYPE := $(shell uname -m)_$(shell uname -s)
+endif
 NAME = libft_malloc_$(HOSTTYPE).so
 ```
 
-### Run the test binary
+### Linux tests
 
 ```bash
-make run
+make help
+make test0       # system/user baseline
+make test1       # allocation overhead and score interpretation
+make test2       # free function and quality
+make test3       # realloc
+make test4       # show_alloc_mem
+make test5       # alignment
+make test-edge   # additional overflow checks
+make test-bonus  # representative bonus checks
+make test        # full evaluation, common prerequisites run once
+make check       # runner fixtures only
 ```
 
-### Test suites
-
-```bash
-make test-mandatory  # mandatory cases, including debug/scribble mode
-make test-bonus      # bonus cases
-make test-eval       # test0–test5 bindings; test0–test2 page-fault evaluation
-make test-all        # all_cases: mandatory + bonus + evaluation
-make test            # alias for test-all
-```
-
-Mandatory and bonus suites directly link renamed allocator objects (`edge_malloc`,
-`edge_free`, `edge_realloc`) from `test/obj/edge`, with separate fixture, helper
-and UI objects in `test/obj/fixture`. Production and edge allocator objects share
-`ALLOCATOR_FLAGS` (`-Wall -Wextra -Werror -fPIC -O0 -g`) and allocator include
-options. Neither specifies a language standard, so both use the same compiler
-default. Only edge objects receive the three symbol renames. Fixtures/helpers/UI
-keep `-std=gnu11 -fno-builtin` and the renames so their allocator calls reach the
-edge implementation. These unit tests cover allocator behavior and internal
-invariants, but do not validate shared-library ELF dependencies or injection.
-
-`make run` compiles `main.c` against the host-named shared library with
-`-lpthread` and runs `./test_malloc`. For a separate shared-library check,
-`make test-build` builds all suites and `make test-correction` (alias:
-`test_correction`) runs the original correction test0–test5 with output checks.
-Test0–test4 are compiled with `$(CC) source -o binary` and no allocator link;
-test5 uses `-L. -lft_malloc` for `show_alloc_mem`. Their binaries are in
-`test/bin/eval`. The runner sets `LD_LIBRARY_PATH` and `LD_PRELOAD` only for
-child workloads and GNU time, and verifies ELF dependencies with `readelf` and
-actual bindings with `LD_DEBUG=bindings`. Do not preload the runner itself.
-Any additional `test/correction/test*.c` sources use a separate direct shared
-link rule and are also run by `test-correction`.
-
-Evaluation requires Linux, GNU time (`/usr/bin/time`), `timeout`, `readelf`,
-`awk`, `sha256sum`, `readlink`, `mktemp`, and `cmp`.
-`make test-eval` verifies bindings for test0–test5, then measures test0–test2
-page faults. Use `REPEATS=5` with `test-eval`, `test-all`, or `test` to repeat
-the measurements. The official free quality criterion is `free_delta <= 3`;
-a larger value produces `WARNING` without failing the runner. Allocation
-requires `255 <= hold_delta <= 272`, and functional free requires fewer faults
-than the hold workload. Execution, allocation, or functional free failures
-return nonzero. Thus the runner's `passed` count (and all_cases success count)
-is not a count of runs meeting the official free quality criterion; inspect
-`free_quality` separately. No performance improvement or guaranteed score is
-implied by these checks.
-
-`make test-build` builds without running; `make test-clean` removes `test/obj`;
-`make test-fclean` also removes `test/bin` and `test_malloc`.
-
-### Debug modes
-
-```bash
-make debug_mode     # MALLOC_DEBUG=1 ./test_malloc
-make scribble_mode  # MALLOC_SCRIBBLE=1 ./test_malloc
-make valgrind       # valgrind with soname synonym
-```
+Each command builds in a new isolated workspace and collects its own required
+measurements. A repository lock serializes measurements even with `make -j`.
+See [test/README.md](test/README.md) for IDs, source conflicts, scoring and exit codes.
 
 ---
 
@@ -219,8 +179,13 @@ pthread_mutex_t g_malloc_mutex;  // protects all allocator state
 
 ---
 
-## Free Fragmentation
+## Free Fragmentation (bonus)
 Coalescing of free blocks is implemented in `coalesce_block()`, which merges adjacent free blocks into a single larger block. This existing implementation makes adjacent free space available as one block for later allocations.
+
+---
+
+## Calloc (bonus)
+`calloc` is implemented as a wrapper around `malloc` that multiplies the requested number of elements by the size of each element, allocates the memory, and then zeroes it out using `ft_memset`. This ensures that the allocated memory is initialized to zero.
 
 ---
 ## Author

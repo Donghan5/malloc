@@ -11,5 +11,15 @@ libft_malloc_x86_64_Linux.so
 /test/core
 /test/core.*
 /test/evidence
+/test/evaluation-*
+/test/README.md
+/test/official-sources.json
 
 free-repeat-30*.txt
+
+malloc.pdf
+eval-sheet.pdf
+malloc.pdf:Zone.Identifier
+test.pdf:Zone.Identifier
+malloc-test-specification.md
+malloc-test-specification.md:Zone.Identifier

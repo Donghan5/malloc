@@ -67,7 +67,6 @@ void	init_debug_flags(void);
 ** src/malloc.c, free.c, realloc.c
 */
 void	*start_malloc(size_t size);
-//trial
 void    start_free(void *ptr);    
 void    *start_realloc(void *ptr, size_t size);
 
