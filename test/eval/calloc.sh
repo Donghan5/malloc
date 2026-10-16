@@ -2,6 +2,7 @@
 calloc_checks() {
     local binary="$WORK/calloc-spec" built id status ok mode output expected
     local -a descriptions=(
+        'B05: Verify that calloc is exported and bound to the project library; disassembly and call graph inspection; Fifth bonus part'
         'C01: Zero every requested byte across size pairs and TINY/SMALL/LARGE boundaries; write and free'
         'C02: Reuse the guarded dirty block at its actual address and zero all requested bytes'
         'C03: Reject runtime multiplication wrapping to zero or a small value; recover normally'
