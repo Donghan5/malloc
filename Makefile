@@ -70,12 +70,21 @@ re:
 
 # Linux tests: build and run only in isolated test workspaces.
 TEST_TARGETS = test0 test1 test2 test3 test4 test5 test-edge test-bonus
-.PHONY: $(TEST_TARGETS) test check help
+.PHONY: $(TEST_TARGETS) test test-clean test-fclean check help
 $(TEST_TARGETS):
 	@bash test/eval/runner.sh $@
 
 test:
 	@sh test/eval/run.sh
+
+test-clean:
+	@rm -rf test/obj
+	@echo "Test clean done"
+
+test-fclean: test-clean
+	@rm -rf test/bin test/evidence test/evaluation-*
+	@rm -f test/core test/core.*
+	@echo "Test fclean done"
 
 check:
 	@bash test/eval/check_runner.sh
@@ -92,4 +101,6 @@ help:
 	  '' 'Bonus:' '  test-bonus B01-B04 and C01-C08 calloc bonus checks' \
 	  '' 'Test utilities:' \
 	  '  test       run the complete evaluation once' \
+	  '  test-clean remove test object files' \
+	  '  test-fclean remove test objects, binaries, evaluation results and core dumps' \
 	  '  check      run the shell runner fixtures only'

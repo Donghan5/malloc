@@ -314,7 +314,7 @@ finish() {
     while IFS= read -r -d '' file; do
         name=$(sha256sum "$file"); name=${name%% *}
         jq -nc --arg key "${file#"$ROOT/"}" --arg value "$name" '{key:$key,value:$value}' >> "$WORK/hashes.jsonl"
-    done < <(find "$ROOT/src" "$ROOT/inc" -type f -print0; printf '%s\0' "$ROOT/Makefile" "$ROOT/malloc-test-specification.md" "$ROOT/eval-sheet.pdf" "$ROOT/malloc.pdf")
+    done < <(find "$ROOT/src" "$ROOT/inc" -type f -print0; printf '%s\0' "$ROOT/Makefile")
     jq -n --arg command "$COMMAND" --arg library "$LIB" --arg hash "$LIB_HASH" --arg workspace "$WORK" --argjson page "$PAGE" \
       --arg platform "$(uname -a)" --argjson compiler "$compiler" \
       --arg git "$(git -C "$ROOT" rev-parse HEAD)" --arg worktree "$(git -C "$ROOT" status --short)" \
